@@ -16,14 +16,14 @@ target users, and backend contracts are still to be defined.
 ## Structure
 
 - `src/app`: Expo Router routes and layouts
+- `src/components`: screen and reusable UI components
 - `assets`: images and app assets
 - `docs/ai`: durable AI context and rules
 - `.agents/skills`: installed AI coding skills
 
 The project is intentionally minimal. The Expo sample screens, sample
 components, sample hooks, and tutorial assets have been removed. Create
-`src/components`, `src/hooks`, `src/constants`, or feature folders only when the
-app needs them.
+`src/hooks`, `src/constants`, or feature folders only when the app needs them.
 
 ## Local Workspace Notes
 

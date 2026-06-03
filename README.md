@@ -37,13 +37,13 @@ npm.cmd run check
 ## Structure
 
 - `src/app`: Expo Router routes and layouts
+- `src/components`: screen and reusable UI components
 - `assets`: static app assets
 - `docs/ai`: AI agent context and coding rules
 - `.agents/skills`: installed AI coding skills
 
 The Expo sample screens and tutorial components have been removed. Add
-`src/components`, `src/hooks`, `src/constants`, or feature folders when the app
-needs them.
+`src/hooks`, `src/constants`, or feature folders when the app needs them.
 
 ## AI Context
 
