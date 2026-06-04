@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const COPY = {
@@ -40,24 +41,195 @@ const SPARKLES = [
 ] as const;
 
 const noop = () => undefined;
+const useNativeAnimationDriver = Platform.OS !== 'web';
 
 export function LandingScreen() {
   const { width, height } = useWindowDimensions();
+  const intro = useMemo(() => new Animated.Value(0), []);
+  const float = useMemo(() => new Animated.Value(0), []);
+  const pulse = useMemo(() => new Animated.Value(0), []);
+  const twinkle = useMemo(() => new Animated.Value(0), []);
+  const comet = useMemo(() => new Animated.Value(0), []);
+  const shimmer = useMemo(() => new Animated.Value(0), []);
   const canvasWidth = Math.min(width, 390);
   const contentWidth = Math.min(canvasWidth - 48, 342);
   const compactHeight = height < 780;
   const shortHeight = height < 700;
 
+  useEffect(() => {
+    const introAnimation = Animated.timing(intro, {
+      toValue: 1,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: useNativeAnimationDriver,
+    });
+
+    const floatAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+        Animated.timing(float, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+      ]),
+    );
+
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 2600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+      ]),
+    );
+
+    const twinkleAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(twinkle, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+        Animated.timing(twinkle, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+      ]),
+    );
+
+    const cometAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(900),
+        Animated.timing(comet, {
+          toValue: 1,
+          duration: 2300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+        Animated.timing(comet, {
+          toValue: 0,
+          duration: 1,
+          easing: Easing.linear,
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+      ]),
+    );
+
+    const shimmerAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+        Animated.timing(shimmer, {
+          toValue: 0,
+          duration: 1,
+          easing: Easing.linear,
+          useNativeDriver: useNativeAnimationDriver,
+        }),
+      ]),
+    );
+
+    introAnimation.start();
+    floatAnimation.start();
+    pulseAnimation.start();
+    twinkleAnimation.start();
+    cometAnimation.start();
+    shimmerAnimation.start();
+
+    return () => {
+      introAnimation.stop();
+      floatAnimation.stop();
+      pulseAnimation.stop();
+      twinkleAnimation.stop();
+      cometAnimation.stop();
+      shimmerAnimation.stop();
+    };
+  }, [comet, float, intro, pulse, shimmer, twinkle]);
+
+  const animatedStyles = useMemo(
+    () => ({
+      header: {
+        opacity: intro,
+        transform: [
+          {
+            translateY: intro.interpolate({
+              inputRange: [0, 1],
+              outputRange: [18, 0],
+            }),
+          },
+        ],
+      },
+      illustration: {
+        opacity: intro.interpolate({
+          inputRange: [0, 0.54, 1],
+          outputRange: [0, 0.3, 1],
+        }),
+        transform: [
+          {
+            translateY: intro.interpolate({
+              inputRange: [0, 1],
+              outputRange: [28, 0],
+            }),
+          },
+          {
+            scale: intro.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.96, 1],
+            }),
+          },
+        ],
+      },
+      footer: {
+        opacity: intro.interpolate({
+          inputRange: [0, 0.66, 1],
+          outputRange: [0, 0, 1],
+        }),
+        transform: [
+          {
+            translateY: intro.interpolate({
+              inputRange: [0, 1],
+              outputRange: [22, 0],
+            }),
+          },
+        ],
+      },
+    }),
+    [intro],
+  );
+
   return (
     <SafeAreaView edges={['bottom']} style={styles.screen}>
       <View style={[styles.canvas, { width: canvasWidth }]}>
-        <StarField />
+        <StarField comet={comet} twinkle={twinkle} />
 
-        <View
+        <Animated.View
           style={[
             styles.heroHeader,
             compactHeight ? styles.heroHeaderCompact : null,
             shortHeight ? styles.heroHeaderShort : null,
+            animatedStyles.header,
           ]}
         >
           <View style={styles.eyebrowRow}>
@@ -82,26 +254,43 @@ export function LandingScreen() {
           >
             {COPY.subtitle}
           </Text>
-        </View>
+        </Animated.View>
 
-        <View
+        <Animated.View
           style={[
             styles.illustrationStage,
             compactHeight ? styles.illustrationStageCompact : null,
             shortHeight ? styles.illustrationStageShort : null,
+            animatedStyles.illustration,
           ]}
         >
-          <MoonDisc compact={compactHeight} />
-          <MascotStage compact={compactHeight} short={shortHeight} width={contentWidth} />
-        </View>
+          <MoonDisc compact={compactHeight} pulse={pulse} />
+          <MascotStage compact={compactHeight} float={float} short={shortHeight} width={contentWidth} />
+        </Animated.View>
 
-        <View style={[styles.footer, compactHeight ? styles.footerCompact : null]}>
+        <Animated.View style={[styles.footer, compactHeight ? styles.footerCompact : null, animatedStyles.footer]}>
           <Pressable
             accessibilityLabel={COPY.cta}
             accessibilityRole="button"
             onPress={noop}
             style={({ pressed }) => [styles.ctaButton, pressed ? styles.ctaButtonPressed : null]}
           >
+            <Animated.View
+              style={[
+                styles.ctaShimmer,
+                {
+                  transform: [
+                    {
+                      translateX: shimmer.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-120, 360],
+                      }),
+                    },
+                    { rotate: '16deg' },
+                  ],
+                },
+              ]}
+            />
             <Text style={styles.ctaLabel}>{COPY.cta}</Text>
           </Pressable>
 
@@ -111,17 +300,42 @@ export function LandingScreen() {
               <Text style={styles.loginLink}>{COPY.login}</Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
 }
 
-function StarField() {
+function StarField({ comet, twinkle }: { comet: Animated.Value; twinkle: Animated.Value }) {
+  const brightStarOpacity = twinkle.interpolate({
+    inputRange: [0, 0.48, 1],
+    outputRange: [0.44, 1, 0.58],
+  });
+  const dimStarOpacity = twinkle.interpolate({
+    inputRange: [0, 0.48, 1],
+    outputRange: [0.9, 0.46, 0.78],
+  });
+  const sparkleScale = twinkle.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.78, 1.24, 0.88],
+  });
+  const cometOpacity = comet.interpolate({
+    inputRange: [0, 0.12, 0.72, 1],
+    outputRange: [0, 0.8, 0.62, 0],
+  });
+  const cometTranslateX = comet.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-120, 430],
+  });
+  const cometTranslateY = comet.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 170],
+  });
+
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {STARS.map((star) => (
-        <View
+    <View style={[StyleSheet.absoluteFill, styles.noPointerEvents]}>
+      {STARS.map((star, index) => (
+        <Animated.View
           key={`${star.left}-${star.top}`}
           style={[
             styles.starDot,
@@ -132,11 +346,15 @@ function StarField() {
               height: star.size,
               borderRadius: star.size / 2,
             },
+            {
+              opacity: index % 2 === 0 ? brightStarOpacity : dimStarOpacity,
+              transform: [{ scale: index % 2 === 0 ? sparkleScale : 1 }],
+            },
           ]}
         />
       ))}
       {SPARKLES.map((sparkle) => (
-        <View
+        <Animated.View
           key={`${sparkle.left}-${sparkle.top}`}
           style={[
             styles.sparkle,
@@ -147,30 +365,86 @@ function StarField() {
               height: sparkle.size,
               opacity: sparkle.opacity,
             },
+            {
+              transform: [{ rotate: '45deg' }, { scale: sparkleScale }],
+            },
           ]}
         >
           <View style={styles.sparkleVertical} />
           <View style={styles.sparkleHorizontal} />
-        </View>
+        </Animated.View>
       ))}
+      <Animated.View
+        style={[
+          styles.comet,
+          {
+            opacity: cometOpacity,
+            transform: [{ translateX: cometTranslateX }, { translateY: cometTranslateY }, { rotate: '-18deg' }],
+          },
+        ]}
+      >
+        <View style={styles.cometHead} />
+        <View style={styles.cometTail} />
+      </Animated.View>
     </View>
   );
 }
 
-function MoonDisc({ compact }: { compact: boolean }) {
+function MoonDisc({ compact, pulse }: { compact: boolean; pulse: Animated.Value }) {
+  const pulseStyle = {
+    opacity: pulse.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.84, 1],
+    }),
+    transform: [
+      {
+        scale: pulse.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.035],
+        }),
+      },
+    ],
+  };
+
   return (
-    <View style={[styles.mysticOrb, compact ? styles.mysticOrbCompact : null]}>
+    <Animated.View style={[styles.mysticOrb, compact ? styles.mysticOrbCompact : null, pulseStyle]}>
       <View style={styles.moonInnerGlow} />
       <View style={styles.moonTopHaze} />
       <View style={styles.moonLowerShadow} />
       <View style={styles.moonCraterLarge} />
       <View style={styles.moonCraterSmall} />
-    </View>
+    </Animated.View>
   );
 }
 
-function MascotStage({ compact, short, width }: { compact: boolean; short: boolean; width: number }) {
+function MascotStage({
+  compact,
+  float,
+  short,
+  width,
+}: {
+  compact: boolean;
+  float: Animated.Value;
+  short: boolean;
+  width: number;
+}) {
   const height = width * (178 / 342);
+  const floatStyle = {
+    transform: [
+      {
+        translateY: float.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -10],
+        }),
+      },
+      {
+        rotate: float.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['-0.8deg', '0.8deg'],
+        }),
+      },
+    ],
+  };
 
   return (
     <View
@@ -181,14 +455,16 @@ function MascotStage({ compact, short, width }: { compact: boolean; short: boole
         short ? styles.mascotStageShort : null,
       ]}
     >
-      <Image
-        accessibilityLabel={COPY.mascotsLabel}
-        cachePolicy="memory-disk"
-        contentFit="contain"
-        priority="high"
-        source={require('@/assets/images/mascots/landing-mascots.png')}
-        style={styles.mascotImage}
-      />
+      <Animated.View style={[styles.mascotFloatLayer, floatStyle]}>
+        <Image
+          accessibilityLabel={COPY.mascotsLabel}
+          cachePolicy="memory-disk"
+          contentFit="contain"
+          priority="high"
+          source={require('@/assets/images/mascots/landing-mascots.png')}
+          style={styles.mascotImage}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -203,6 +479,9 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 390,
     overflow: 'hidden',
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   starDot: {
     position: 'absolute',
@@ -227,6 +506,28 @@ const styles = StyleSheet.create({
     height: 1,
     borderRadius: 1,
     backgroundColor: '#c9a24a',
+  },
+  comet: {
+    position: 'absolute',
+    left: 0,
+    top: 120,
+    width: 122,
+    height: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  cometHead: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff7c9',
+    boxShadow: '0 0 14px rgba(255,247,201,0.92)',
+  },
+  cometTail: {
+    width: 112,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255,232,155,0.48)',
   },
   heroHeader: {
     alignItems: 'center',
@@ -298,10 +599,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(69,56,154,0.18)',
     borderWidth: 1,
     borderColor: 'rgba(174,156,255,0.05)',
-    shadowColor: '#8e80de',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 34,
+    boxShadow: '0 0 34px rgba(142,128,222,0.12)',
   },
   mysticOrbCompact: {
     bottom: 42,
@@ -370,6 +668,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  mascotFloatLayer: {
+    width: '100%',
+    height: '100%',
+  },
   footer: {
     paddingHorizontal: 24,
     paddingBottom: 28,
@@ -384,12 +686,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 56,
     borderRadius: 28,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
     backgroundColor: '#b8872a',
-    shadowColor: '#8b6010',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.38,
-    shadowRadius: 14,
-    elevation: 4,
+    boxShadow: '0 4px 14px rgba(139,96,16,0.38)',
+  },
+  ctaShimmer: {
+    position: 'absolute',
+    left: 0,
+    width: 54,
+    height: 96,
+    pointerEvents: 'none',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   ctaButtonPressed: {
     opacity: 0.86,
