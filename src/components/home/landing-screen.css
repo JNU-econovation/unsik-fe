@@ -1,0 +1,653 @@
+.landing-screen {
+  display: flex;
+  justify-content: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #12103a;
+}
+
+.landing-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 390px);
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.star-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.star-dot {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.star-dot-bright {
+  animation: twinkle-bright 3s ease-in-out infinite;
+}
+
+.star-dot-dim {
+  animation: twinkle-dim 3s ease-in-out infinite;
+}
+
+.sparkle {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  animation: sparkle-pulse 3s ease-in-out infinite;
+}
+
+.sparkle-vertical,
+.sparkle-horizontal {
+  position: absolute;
+  display: block;
+  border-radius: 1px;
+  background: #c9a24a;
+}
+
+.sparkle-vertical {
+  width: 1px;
+  height: 100%;
+}
+
+.sparkle-horizontal {
+  width: 100%;
+  height: 1px;
+}
+
+.celestial-sigil {
+  position: absolute;
+  top: 138px;
+  left: 50%;
+  display: block;
+  width: 318px;
+  height: 318px;
+  opacity: 0.72;
+  transform: translateX(-50%);
+  animation: sigil-breathe 7s ease-in-out infinite;
+}
+
+.celestial-sigil::before,
+.celestial-sigil::after {
+  position: absolute;
+  inset: 42px;
+  display: block;
+  content: '';
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 234, 160, 0.26), transparent 5%),
+    radial-gradient(circle at 92% 48%, rgba(255, 234, 160, 0.22), transparent 5%),
+    radial-gradient(circle at 38% 95%, rgba(255, 234, 160, 0.22), transparent 5%);
+  filter: blur(0.2px);
+}
+
+.celestial-sigil::after {
+  inset: 84px;
+  opacity: 0.62;
+  transform: rotate(42deg);
+}
+
+.sigil-ring {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+}
+
+.sigil-ring-outer {
+  inset: 18px;
+  border: 1px solid rgba(201, 162, 74, 0.22);
+  border-top-color: rgba(255, 234, 166, 0.5);
+  border-right-color: rgba(150, 166, 255, 0.22);
+  animation: sigil-turn 18s linear infinite;
+}
+
+.sigil-ring-inner {
+  inset: 78px;
+  border: 1px solid rgba(255, 232, 166, 0.18);
+  border-bottom-color: rgba(201, 162, 74, 0.44);
+  animation: sigil-turn-reverse 24s linear infinite;
+}
+
+.sigil-thread {
+  position: absolute;
+  left: 50%;
+  display: block;
+  width: 210px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 226, 148, 0.4), transparent);
+  opacity: 0.52;
+  transform-origin: left center;
+}
+
+.sigil-thread-one {
+  top: 84px;
+  transform: rotate(31deg);
+  animation: thread-glow 5s ease-in-out infinite;
+}
+
+.sigil-thread-two {
+  top: 222px;
+  transform: rotate(-37deg);
+  animation: thread-glow 5s ease-in-out 1.2s infinite;
+}
+
+.sigil-thread-three {
+  top: 158px;
+  transform: rotate(154deg);
+  animation: thread-glow 5s ease-in-out 2.1s infinite;
+}
+
+.sigil-point {
+  position: absolute;
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffe9a5;
+  box-shadow:
+    0 0 8px rgba(255, 233, 165, 0.88),
+    0 0 18px rgba(142, 158, 255, 0.18);
+  animation: sigil-point-pulse 3.8s ease-in-out infinite;
+}
+
+.sigil-point-one {
+  top: 48px;
+  left: 154px;
+}
+
+.sigil-point-two {
+  top: 94px;
+  right: 50px;
+  animation-delay: 0.5s;
+}
+
+.sigil-point-three {
+  right: 74px;
+  bottom: 68px;
+  animation-delay: 1s;
+}
+
+.sigil-point-four {
+  bottom: 48px;
+  left: 108px;
+  animation-delay: 1.5s;
+}
+
+.sigil-point-five {
+  top: 156px;
+  left: 58px;
+  animation-delay: 2s;
+}
+
+.hero-header {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 65px 24px 0;
+  text-align: center;
+  animation: header-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.eyebrow-line {
+  display: block;
+  width: 48px;
+  height: 1px;
+  background: #c9a24a;
+}
+
+.eyebrow {
+  color: #c9a24a;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.title {
+  max-width: min(calc(100vw - 48px), 342px);
+  margin: 9px 0 0;
+  color: #ffffff;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 52px;
+  letter-spacing: 0;
+  white-space: pre-line;
+}
+
+.subtitle {
+  max-width: min(calc(100vw - 48px), 342px);
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0;
+}
+
+.illustration-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 420px;
+  padding-bottom: 8px;
+  animation: illustration-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mystic-orb {
+  position: absolute;
+  bottom: 58px;
+  left: 50%;
+  width: 360px;
+  height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(174, 156, 255, 0.05);
+  border-radius: 50%;
+  background: rgba(69, 56, 154, 0.18);
+  box-shadow: 0 0 34px rgba(142, 128, 222, 0.12);
+  transform: translateX(-50%);
+  animation: orb-pulse 5.2s ease-in-out infinite;
+}
+
+.moon-inner-glow,
+.moon-top-haze,
+.moon-lower-shadow,
+.moon-crater-large,
+.moon-crater-small {
+  position: absolute;
+  display: block;
+}
+
+.moon-inner-glow {
+  top: 28px;
+  left: 44px;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  background: rgba(151, 135, 227, 0.08);
+}
+
+.moon-top-haze {
+  top: 0;
+  left: 18px;
+  width: 300px;
+  height: 180px;
+  border-radius: 150px;
+  background: rgba(210, 199, 255, 0.04);
+  transform: rotate(-8deg);
+}
+
+.moon-lower-shadow {
+  bottom: -50px;
+  left: -12px;
+  width: 390px;
+  height: 190px;
+  border-radius: 195px;
+  background: rgba(12, 10, 42, 0.24);
+}
+
+.moon-crater-large {
+  top: 105px;
+  left: 72px;
+  width: 88px;
+  height: 46px;
+  border-radius: 44px;
+  background: rgba(31, 24, 88, 0.09);
+  transform: rotate(-16deg);
+}
+
+.moon-crater-small {
+  top: 68px;
+  right: 78px;
+  width: 54px;
+  height: 30px;
+  border-radius: 27px;
+  background: rgba(194, 182, 255, 0.05);
+  transform: rotate(18deg);
+}
+
+.mascot-stage {
+  width: min(calc(100vw - 48px), 342px);
+  aspect-ratio: 342 / 178;
+}
+
+.mascot-float-layer {
+  width: 100%;
+  height: 100%;
+  animation: mascot-float 4.4s ease-in-out infinite;
+}
+
+.mascot-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.footer {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 24px calc(28px + env(safe-area-inset-bottom));
+  animation: footer-in 900ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+}
+
+.cta-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 28px;
+  background: #b8872a;
+  box-shadow: 0 4px 14px rgba(139, 96, 16, 0.38);
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cta-button:active {
+  opacity: 0.86;
+  transform: scale(0.99);
+}
+
+.cta-button:focus-visible,
+.login-link:focus-visible {
+  outline: 2px solid #fff7c9;
+  outline-offset: 4px;
+}
+
+.cta-shimmer {
+  position: absolute;
+  left: 0;
+  display: block;
+  width: 54px;
+  height: 96px;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-120px) rotate(16deg);
+  animation: shimmer 3.8s ease-out 1.2s infinite;
+}
+
+.cta-label {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.login-row {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+}
+
+.login-hint {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.login-link {
+  min-height: 28px;
+  margin: -5px 0;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #c9a24a;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+@media (max-width: 360px) {
+  .title {
+    font-size: 36px;
+    line-height: 46px;
+  }
+
+  .eyebrow-row {
+    gap: 20px;
+  }
+
+  .eyebrow-line {
+    width: 42px;
+  }
+}
+
+@media (max-height: 779px) {
+  .hero-header {
+    padding-top: 46px;
+  }
+
+  .illustration-stage {
+    min-height: 324px;
+    padding-bottom: 0;
+  }
+
+  .mystic-orb {
+    bottom: 42px;
+    width: 330px;
+    height: 330px;
+  }
+
+  .mascot-stage {
+    transform: scale(0.92);
+  }
+
+  .footer {
+    gap: 14px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-height: 699px) {
+  .hero-header {
+    padding-top: 34px;
+  }
+
+  .illustration-stage {
+    min-height: 282px;
+  }
+
+  .mascot-stage {
+    transform: scale(0.84);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes header-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes illustration-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+  54% {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes footer-in {
+  from,
+  66% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.8deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.8deg);
+  }
+}
+
+@keyframes orb-pulse {
+  0%,
+  100% {
+    opacity: 0.84;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.035);
+  }
+}
+
+@keyframes twinkle-bright {
+  0% {
+    opacity: 0.44;
+    transform: scale(0.78);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(1.24);
+  }
+  100% {
+    opacity: 0.58;
+    transform: scale(0.88);
+  }
+}
+
+@keyframes twinkle-dim {
+  0% {
+    opacity: 0.9;
+  }
+  48% {
+    opacity: 0.46;
+  }
+  100% {
+    opacity: 0.78;
+  }
+}
+
+@keyframes sparkle-pulse {
+  0% {
+    transform: rotate(45deg) scale(0.78);
+  }
+  50% {
+    transform: rotate(45deg) scale(1.24);
+  }
+  100% {
+    transform: rotate(45deg) scale(0.88);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  38% {
+    transform: translateX(-120px) rotate(16deg);
+  }
+  80%,
+  100% {
+    transform: translateX(360px) rotate(16deg);
+  }
+}
+
+@keyframes sigil-breathe {
+  0%,
+  100% {
+    opacity: 0.54;
+    transform: translateX(-50%) scale(0.96) rotate(-2deg);
+  }
+  50% {
+    opacity: 0.82;
+    transform: translateX(-50%) scale(1.02) rotate(2deg);
+  }
+}
+
+@keyframes sigil-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sigil-turn-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes thread-glow {
+  0%,
+  100% {
+    opacity: 0.24;
+    filter: blur(0);
+  }
+  45% {
+    opacity: 0.68;
+    filter: blur(0.2px);
+  }
+}
+
+@keyframes sigil-point-pulse {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.32);
+  }
+}

@@ -2,27 +2,29 @@
 
 ## Architecture
 
-- Keep route files thin. Move reusable rendering and business logic into
+- Keep `src/main.tsx` as the React DOM bootstrap and `src/App.tsx` as the
+  top-level composition point. Move reusable rendering and business logic into
   components, hooks, or feature modules as the app grows.
 - Prefer `@/` imports over long relative paths.
-- Keep platform-specific code explicit with `.ios.tsx`, `.android.tsx`, or
-  `.web.tsx` files when behavior genuinely differs.
-- Use Expo Router conventions for navigation instead of ad hoc navigation state.
+- Add a router only when the app has multiple real routes.
 
 ## Dependencies
 
-- Check SDK compatibility before adding React Native libraries.
-- Use `npx.cmd expo install <package>` for Expo-managed native dependencies.
-- Avoid ejecting or prebuilding unless the task explicitly requires native code.
+- Prefer lightweight browser-compatible React libraries.
+- Do not add React Native, Expo, or native mobile dependencies unless the user
+  explicitly asks to return to that stack.
+- Keep PWA work explicit. Add manifests, service workers, and install prompts
+  only when the task asks for them.
 
 ## UI
 
-- Use React Native primitives and Expo-compatible libraries; do not rely on DOM
-  APIs for native screens.
-- Respect safe areas, keyboard overlap, dynamic text sizes, and touch targets.
-- Add accessible labels/roles for interactive controls.
-- Keep layout responsive across phone, tablet, and web unless a route is
-  intentionally platform-specific.
+- Use semantic HTML, CSS, and accessible React components.
+- Design mobile browser layouts first. Respect safe area insets, viewport height
+  changes, keyboard overlap, readable text, and touch targets.
+- Add accessible labels, roles, visible focus states, and keyboard behavior for
+  interactive controls.
+- Keep layout responsive across phone and desktop browsers unless a route is
+  intentionally constrained.
 
 ## Data And Errors
 
@@ -35,4 +37,6 @@
 
 - Run `npm.cmd run typecheck` after TypeScript changes.
 - Run `npm.cmd run lint` after larger changes or before handoff.
+- Run `npm.cmd run build` before handoff when build tooling or asset handling
+  changes.
 - Mention any command that could not be run and why.

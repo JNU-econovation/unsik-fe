@@ -1,6 +1,6 @@
 # unsik-fe
 
-React Native frontend built with Expo, Expo Router, React 19, and TypeScript.
+React web frontend built with Vite, React 19, and TypeScript.
 
 ## Setup
 
@@ -16,12 +16,11 @@ Start the development server:
 npm.cmd run dev
 ```
 
-Run a platform target:
+Build or preview the production bundle:
 
 ```bash
-npm.cmd run android
-npm.cmd run ios
-npm.cmd run web
+npm.cmd run build
+npm.cmd run preview
 ```
 
 On macOS, `npm.cmd` is not needed; use `npm` instead.
@@ -36,14 +35,14 @@ npm.cmd run check
 
 ## Structure
 
-- `src/app`: Expo Router routes and layouts
+- `src/main.tsx`: React DOM entry
+- `src/App.tsx`: top-level app composition
 - `src/components`: screen and reusable UI components
-- `assets`: static app assets
+- `assets`: source assets imported by React
+- `public`: browser-served assets such as favicons and future PWA icons
 - `docs/ai`: AI agent context and coding rules
-- `.agents/skills`: installed AI coding skills
 
-The Expo sample screens and tutorial components have been removed. Add
-`src/hooks`, `src/constants`, or feature folders when the app needs them.
+Add `src/hooks`, `src/constants`, or feature folders when the app needs them.
 
 ## AI Context
 
@@ -57,10 +56,5 @@ Copy `.env.example` when local public configuration is needed:
 copy .env.example .env
 ```
 
-Only variables prefixed with `EXPO_PUBLIC_` should be read by client code, and
-they are public in the app bundle.
-
-## Docs
-
-- Expo SDK docs: https://docs.expo.dev/versions/v56.0.0/
-- React Native docs: https://reactnative.dev/docs/0.85/getting-started
+Only variables prefixed with `VITE_` should be read by client code, and they are
+public in the app bundle.

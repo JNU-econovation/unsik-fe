@@ -1,38 +1,30 @@
 {
   "name": "unsik-fe",
-  "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "expo": "~56.0.8",
-    "expo-constants": "~56.0.16",
-    "expo-image": "~56.0.9",
-    "expo-linking": "~56.0.13",
-    "expo-router": "~56.2.8",
-    "expo-splash-screen": "~56.0.10",
-    "expo-status-bar": "~56.0.4",
-    "expo-system-ui": "~56.0.5",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.85.3",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "4.25.2",
-    "react-native-web": "~0.21.0"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^25.9.1",
     "@types/react": "~19.2.2",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9.0.0",
-    "eslint-config-expo": "~56.0.4",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.60.1",
+    "vite": "^7.3.5"
   },
   "scripts": {
-    "dev": "expo start",
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint",
+    "clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean-dist.ps1",
+    "dev": "node scripts/dev-server.mjs",
+    "start": "node scripts/dev-server.mjs",
+    "build": "npm run clean && tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint && npm run build"
   },
   "private": true
 }

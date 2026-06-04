@@ -2,28 +2,31 @@
 
 ## Product
 
-`unsik-fe` is the React Native frontend for the Unsik app. Product details,
-target users, and backend contracts are still to be defined.
+`unsik-fe` is the React web frontend for the Unsik app. It currently renders a
+mobile-first landing screen. Product details, target users, and backend
+contracts are still to be defined.
 
 ## Runtime
 
-- Expo SDK 56
-- React Native 0.85
 - React 19
+- React DOM 19
+- Vite
 - TypeScript strict mode
 - npm lockfile
 
 ## Structure
 
-- `src/app`: Expo Router routes and layouts
+- `src/main.tsx`: React DOM entry
+- `src/App.tsx`: top-level app composition
 - `src/components`: screen and reusable UI components
-- `assets`: images and app assets
+- `assets`: source assets imported by React
+- `public`: browser-served assets such as favicons and future PWA icons
 - `docs/ai`: durable AI context and rules
-- `.agents/skills`: installed AI coding skills
 
-The project is intentionally minimal. The Expo sample screens, sample
-components, sample hooks, and tutorial assets have been removed. Create
-`src/hooks`, `src/constants`, or feature folders only when the app needs them.
+The project is intentionally minimal. React Native, Expo Router, native app
+metadata, generated Expo icons, and React Native-specific agent skills have
+been removed. Create `src/hooks`, `src/constants`, or feature folders only when
+the app needs them.
 
 ## Local Workspace Notes
 
@@ -34,9 +37,9 @@ components, sample hooks, and tutorial assets have been removed. Create
 
 ## Environment
 
-Client-readable environment variables must use the `EXPO_PUBLIC_` prefix. Treat
-all such values as public because they are bundled into the app.
+Client-readable environment variables must use the `VITE_` prefix. Treat all
+such values as public because they are bundled into the app.
 
 Current placeholder variables:
 
-- `EXPO_PUBLIC_API_BASE_URL`: backend API base URL
+- `VITE_API_BASE_URL`: backend API base URL
