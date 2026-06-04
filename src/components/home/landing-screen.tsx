@@ -40,6 +40,48 @@ const SPARKLES = [
   { left: 366, top: 435, size: 11, opacity: 0.48 },
 ] as const;
 
+const SHOOTING_STARS = [
+  {
+    left: -92,
+    top: 82,
+    travelX: 442,
+    travelY: 156,
+    tail: 116,
+    size: 8,
+    angle: '20deg',
+    reverse: true,
+    start: 0.06,
+    end: 0.34,
+    opacity: 0.9,
+  },
+  {
+    left: 326,
+    top: 12,
+    travelX: -258,
+    travelY: 174,
+    tail: 88,
+    size: 6,
+    angle: '-28deg',
+    reverse: false,
+    start: 0.43,
+    end: 0.68,
+    opacity: 0.66,
+  },
+  {
+    left: -62,
+    top: 258,
+    travelX: 428,
+    travelY: 118,
+    tail: 102,
+    size: 7,
+    angle: '15deg',
+    reverse: true,
+    start: 0.74,
+    end: 0.96,
+    opacity: 0.72,
+  },
+] as const;
+
 const noop = () => undefined;
 const useNativeAnimationDriver = Platform.OS !== 'web';
 
@@ -70,12 +112,14 @@ export function LandingScreen() {
           toValue: 1,
           duration: 2200,
           easing: Easing.inOut(Easing.sin),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
         Animated.timing(float, {
           toValue: 0,
           duration: 2200,
           easing: Easing.inOut(Easing.sin),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
       ]),
@@ -87,12 +131,14 @@ export function LandingScreen() {
           toValue: 1,
           duration: 2600,
           easing: Easing.inOut(Easing.sin),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
         Animated.timing(pulse, {
           toValue: 0,
           duration: 2600,
           easing: Easing.inOut(Easing.sin),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
       ]),
@@ -104,12 +150,14 @@ export function LandingScreen() {
           toValue: 1,
           duration: 1500,
           easing: Easing.inOut(Easing.quad),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
         Animated.timing(twinkle, {
           toValue: 0,
           duration: 1500,
           easing: Easing.inOut(Easing.quad),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
       ]),
@@ -117,17 +165,19 @@ export function LandingScreen() {
 
     const cometAnimation = Animated.loop(
       Animated.sequence([
-        Animated.delay(900),
+        Animated.delay(650),
         Animated.timing(comet, {
           toValue: 1,
-          duration: 2300,
+          duration: 5200,
           easing: Easing.out(Easing.cubic),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
         Animated.timing(comet, {
           toValue: 0,
           duration: 1,
           easing: Easing.linear,
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
       ]),
@@ -140,12 +190,14 @@ export function LandingScreen() {
           toValue: 1,
           duration: 1600,
           easing: Easing.out(Easing.cubic),
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
         Animated.timing(shimmer, {
           toValue: 0,
           duration: 1,
           easing: Easing.linear,
+          isInteraction: false,
           useNativeDriver: useNativeAnimationDriver,
         }),
       ]),
@@ -320,16 +372,8 @@ function StarField({ comet, twinkle }: { comet: Animated.Value; twinkle: Animate
     outputRange: [0.78, 1.24, 0.88],
   });
   const cometOpacity = comet.interpolate({
-    inputRange: [0, 0.12, 0.72, 1],
-    outputRange: [0, 0.8, 0.62, 0],
-  });
-  const cometTranslateX = comet.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-120, 430],
-  });
-  const cometTranslateY = comet.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 170],
+    inputRange: [0, 0.08, 0.88, 1],
+    outputRange: [0, 0.22, 0.18, 0],
   });
 
   return (
@@ -374,18 +418,65 @@ function StarField({ comet, twinkle }: { comet: Animated.Value; twinkle: Animate
           <View style={styles.sparkleHorizontal} />
         </Animated.View>
       ))}
-      <Animated.View
-        style={[
-          styles.comet,
-          {
-            opacity: cometOpacity,
-            transform: [{ translateX: cometTranslateX }, { translateY: cometTranslateY }, { rotate: '-18deg' }],
-          },
-        ]}
-      >
-        <View style={styles.cometHead} />
-        <View style={styles.cometTail} />
-      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.meteorHaze, { opacity: cometOpacity }]} />
+      {SHOOTING_STARS.map((meteor) => {
+        const meteorOpacity = comet.interpolate({
+          inputRange: [0, meteor.start, meteor.start + 0.06, meteor.end - 0.08, meteor.end, 1],
+          outputRange: [0, 0, meteor.opacity, meteor.opacity * 0.68, 0, 0],
+          extrapolate: 'clamp',
+        });
+        const meteorTranslateX = comet.interpolate({
+          inputRange: [0, meteor.start, meteor.end, 1],
+          outputRange: [0, 0, meteor.travelX, meteor.travelX],
+          extrapolate: 'clamp',
+        });
+        const meteorTranslateY = comet.interpolate({
+          inputRange: [0, meteor.start, meteor.end, 1],
+          outputRange: [0, 0, meteor.travelY, meteor.travelY],
+          extrapolate: 'clamp',
+        });
+        const meteorScale = comet.interpolate({
+          inputRange: [0, meteor.start, meteor.start + 0.05, meteor.end, 1],
+          outputRange: [0.88, 0.88, 1, 0.96, 0.96],
+          extrapolate: 'clamp',
+        });
+
+        return (
+          <Animated.View
+            key={`${meteor.left}-${meteor.top}`}
+            style={[
+              styles.shootingStar,
+              {
+                flexDirection: meteor.reverse ? 'row-reverse' : 'row',
+                left: meteor.left,
+                opacity: meteorOpacity,
+                top: meteor.top,
+                transform: [
+                  { translateX: meteorTranslateX },
+                  { translateY: meteorTranslateY },
+                  { rotate: meteor.angle },
+                  { scale: meteorScale },
+                ],
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.shootingStarHead,
+                {
+                  width: meteor.size,
+                  height: meteor.size,
+                  borderRadius: meteor.size / 2,
+                },
+              ]}
+            />
+            <View style={[styles.shootingStarTrail, { width: meteor.tail }]}>
+              <View style={styles.shootingStarTrailGlow} />
+              <View style={styles.shootingStarTrailCore} />
+            </View>
+          </Animated.View>
+        );
+      })}
     </View>
   );
 }
@@ -507,27 +598,35 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     backgroundColor: '#c9a24a',
   },
-  comet: {
+  meteorHaze: {
     position: 'absolute',
-    left: 0,
-    top: 120,
-    width: 122,
-    height: 16,
-    alignItems: 'center',
-    flexDirection: 'row',
+    backgroundColor: 'rgba(255,230,151,0.02)',
   },
-  cometHead: {
-    width: 8,
+  shootingStar: {
+    position: 'absolute',
+    alignItems: 'center',
+    height: 18,
+  },
+  shootingStarHead: {
+    backgroundColor: '#fff7c9',
+    boxShadow: '0 0 16px rgba(255,247,201,0.95)',
+  },
+  shootingStarTrail: {
+    justifyContent: 'center',
+    height: 12,
+  },
+  shootingStarTrailGlow: {
+    position: 'absolute',
+    width: '100%',
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#fff7c9',
-    boxShadow: '0 0 14px rgba(255,247,201,0.92)',
+    backgroundColor: 'rgba(255,214,133,0.12)',
   },
-  cometTail: {
-    width: 112,
+  shootingStarTrailCore: {
+    width: '100%',
     height: 2,
     borderRadius: 1,
-    backgroundColor: 'rgba(255,232,155,0.48)',
+    backgroundColor: 'rgba(255,232,155,0.58)',
   },
   heroHeader: {
     alignItems: 'center',
