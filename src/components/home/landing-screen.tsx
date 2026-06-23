@@ -2,14 +2,12 @@ import mascotImage from '@/assets/images/mascots/landing-mascots.png';
 import './landing-screen.css';
 
 const COPY = {
-  title: '\uC624\uB298 \uBB50 \uBA39\uC9C0?\n\uC6B4\uBA85\uC5D0\uAC8C \uBB3C\uC5B4\uBD10.',
-  subtitle:
-    '\uC138 \uC810\uC7C1\uC774 \uC170\uD504\uAC00 \uB2F9\uC2E0\uC758 \uD55C \uB07C\uB97C \uC810\uCCD0 \uB4DC\uB824\uC694.',
-  cta: '\uBA54\uB274 \uC810 \uBCF4\uB7EC \uAC00\uAE30',
-  loginHint: '\uC774\uBBF8 \uB2E8\uACE8\uC774\uC2E0\uAC00\uC694?',
-  login: '\uB85C\uADF8\uC778',
-  mascotsLabel:
-    '\uBCC4\uC758 \uC170\uD504, \uC6B4\uBA85\uC758 \uC170\uD504, \uB2EC\uC758 \uC810\uC7C1\uC774 \uCE90\uB9AD\uD130',
+  title: '오늘 뭐 먹지?\n운명에게 물어봐.',
+  subtitle: '세 점쟁이 셰프가 당신의 한 끼를 점쳐 드려요.',
+  cta: '메뉴 점 보러 가기',
+  loginHint: '이미 단골이신가요?',
+  login: '로그인',
+  mascotsLabel: '별의 셰프, 운명의 셰프, 달의 점쟁이 캐릭터',
 } as const;
 
 const STARS = [

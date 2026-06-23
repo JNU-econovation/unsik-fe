@@ -33,6 +33,16 @@
   folder once backend contracts exist.
 - Never hardcode secrets, tokens, or private service keys in the client.
 
+## Git
+
+- Use `[type]: summary` for commit messages.
+- Keep the summary concise and specific. Korean or English summaries are both
+  acceptable.
+- Prefer these types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`,
+  `chore`, `build`, `ci`, `perf`, and `revert`.
+- Examples: `[feat]: add menu recommendation flow`,
+  `[docs]: document commit message rules`.
+
 ## Verification
 
 - Run `npm.cmd run typecheck` after TypeScript changes.
