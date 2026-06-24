@@ -25,6 +25,8 @@
   interactive controls.
 - Keep layout responsive across phone and desktop browsers unless a route is
   intentionally constrained.
+- For detailed frontend implementation rules, read
+  `docs/ai/frontend-rules.md` before changing UI code.
 
 ## Data And Errors
 

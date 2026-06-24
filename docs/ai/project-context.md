@@ -22,6 +22,7 @@ contracts are still to be defined.
 - `assets`: source assets imported by React
 - `public`: browser-served assets such as favicons and future PWA icons
 - `docs/ai`: durable AI context and rules
+- `docs/frontend-study-guide.html`: dark-mode frontend study guide for humans
 
 The project is intentionally minimal. React Native, Expo Router, native app
 metadata, generated Expo icons, and React Native-specific agent skills have

@@ -9,7 +9,13 @@ current, and operational.
 2. `README.md`
 3. `docs/ai/project-context.md`
 4. `docs/ai/rules.md`
-5. `docs/ai/task-brief-template.md` when starting a scoped feature
+5. `docs/ai/frontend-rules.md` before frontend implementation work
+6. `docs/ai/task-brief-template.md` when starting a scoped feature
+
+## Human Study Docs
+
+- `docs/frontend-study-guide.html`: dark-mode study guide for a backend
+  developer learning the current React frontend.
 
 ## Maintenance Rule
 
