@@ -31,7 +31,7 @@
 
 기준:
 
-- 한 화면짜리 앱이면 `App.tsx -> LandingScreen` 정도가 충분하다.
+- 한 화면짜리 앱이면 `App.tsx -> MainScreen` 정도가 충분하다.
 - 라우트가 2개 이상이 되고 URL이 의미를 가지면 라우터 도입을 검토한다.
 - 서버 API 호출이 여러 곳에서 반복되면 `src/services`나 feature-local
   API 모듈을 만든다.
@@ -193,7 +193,7 @@ async function fetchRecommendation(): Promise<MenuRecommendation> {
 예:
 
 ```ts
-import { LandingScreen } from '@/components/home/landing-screen';
+import { MainScreen } from '@/components/main/main-screen';
 import mascotImage from '@/assets/images/mascots/landing-mascots.png';
 ```
 

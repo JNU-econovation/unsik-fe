@@ -3,8 +3,12 @@
 ## Product
 
 `unsik-fe` is the React web frontend for the Unsik app. It currently renders a
-mobile-first landing screen. Product details, target users, and backend
-contracts are still to be defined.
+mobile-first main screen at `/main` and transitions to a room list screen at
+`/grouplist` after the mock login action. Product details, target users, and
+backend contracts are still to be defined.
+
+The room list currently uses local mock state. Users can create rooms, copy a
+mock invite link, rename rooms, and delete rooms in the browser session only.
 
 ## Runtime
 
@@ -17,8 +21,11 @@ contracts are still to be defined.
 ## Structure
 
 - `src/main.tsx`: React DOM entry
-- `src/App.tsx`: top-level app composition
-- `src/components`: screen and reusable UI components
+- `src/App.tsx`: top-level app composition and lightweight URL routing for
+  `/main` and `/grouplist`
+- `src/components/main`: main entry screen
+- `src/components/rooms`: room list screen
+- `src/components`: reusable UI components as the app grows
 - `assets`: source assets imported by React
 - `public`: browser-served assets such as favicons and future PWA icons
 - `docs/ai`: durable AI context and rules
