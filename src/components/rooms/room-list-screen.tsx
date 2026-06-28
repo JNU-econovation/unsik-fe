@@ -130,6 +130,41 @@ export function RoomListScreen({ onBack }: RoomListScreenProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!openMenuId) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const isCurrentMenuClick = event.target.closest(`[data-room-menu-popover="${openMenuId}"]`);
+      const isCurrentButtonClick = event.target.closest(`[data-room-menu-button="${openMenuId}"]`);
+
+      if (isCurrentMenuClick || isCurrentButtonClick) {
+        return;
+      }
+
+      setOpenMenuId(null);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenuId]);
+
   const showToast = (message: string) => {
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
@@ -323,7 +358,7 @@ type RoomCardProps = {
 };
 
 function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
-  const cardClassName = `room-card room-card-${tone}`;
+  const cardClassName = `room-card room-card-${tone}${isMenuOpen ? ' room-card-open' : ''}`;
 
   return (
     <article className={cardClassName} style={style}>
@@ -344,6 +379,7 @@ function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }:
         <button
           className="room-menu-button"
           type="button"
+          data-room-menu-button={room.id}
           onClick={onToggleMenu}
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
@@ -369,14 +405,22 @@ function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }:
         <p className="room-recommendation">{room.recommendation}</p>
       </div>
 
-      {isMenuOpen ? <RoomMenu onSelect={onMenuAction} roomName={room.name} /> : null}
+      {isMenuOpen ? <RoomMenu onSelect={onMenuAction} roomId={room.id} roomName={room.name} /> : null}
     </article>
   );
 }
 
-function RoomMenu({ roomName, onSelect }: { roomName: string; onSelect: (action: MenuAction) => void }) {
+function RoomMenu({
+  roomId,
+  roomName,
+  onSelect,
+}: {
+  roomId: string;
+  roomName: string;
+  onSelect: (action: MenuAction) => void;
+}) {
   return (
-    <div className="room-menu-popover" role="menu" aria-label={`${roomName} 메뉴`}>
+    <div className="room-menu-popover" role="menu" aria-label={`${roomName} 메뉴`} data-room-menu-popover={roomId}>
       {MENU_ITEMS.map((item) => (
         <button
           className={`room-menu-item ${item.kind === 'danger' ? 'room-menu-item-danger' : ''}`}

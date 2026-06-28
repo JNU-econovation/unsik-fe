@@ -137,12 +137,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: visible;
 }
 
 .room-card {
   --room-delay: 0ms;
 
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: 106px;
@@ -151,6 +153,10 @@
   background: #151332;
   box-shadow: 0 9px 26px rgba(0, 0, 0, 0.28);
   animation: room-card-in 560ms cubic-bezier(0.22, 1, 0.36, 1) var(--room-delay) both;
+}
+
+.room-card-open {
+  z-index: 10;
 }
 
 .room-card-featured {
