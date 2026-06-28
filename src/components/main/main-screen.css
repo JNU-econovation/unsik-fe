@@ -429,6 +429,16 @@
   z-index: 1;
 }
 
+.main-login-error {
+  margin: -6px 0 0;
+  color: #ffe7e0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19px;
+  letter-spacing: 0;
+  text-align: center;
+}
+
 @media (max-width: 360px) {
   .main-title {
     font-size: 36px;

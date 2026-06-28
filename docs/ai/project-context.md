@@ -3,9 +3,10 @@
 ## Product
 
 `unsik-fe` is the React web frontend for the Unsik app. It currently renders a
-mobile-first main screen at `/main` and transitions to a room list screen at
-`/grouplist` after the mock login action. Product details, target users, and
-backend contracts are still to be defined.
+mobile-first main screen at `/main`, supports Kakao OAuth callback handling at
+`/auth/kakao/callback`, and transitions to a room list screen at `/grouplist`.
+Product details, target users, and most backend contracts are still to be
+defined.
 
 The room list currently uses local mock state. Users can create rooms, copy a
 mock invite link, rename rooms, and delete rooms in the browser session only.
@@ -22,8 +23,11 @@ mock invite link, rename rooms, and delete rooms in the browser session only.
 
 - `src/main.tsx`: React DOM entry
 - `src/App.tsx`: top-level app composition and lightweight URL routing for
-  `/main` and `/grouplist`
+  `/main`, `/auth/kakao/callback`, and `/grouplist`
+- `src/services/auth.ts`: Kakao OAuth URL creation, `/api/auth/kakao` exchange,
+  and browser auth-session storage
 - `src/components/main`: main entry screen
+- `src/components/auth`: auth callback screens
 - `src/components/rooms`: room list screen
 - `src/components`: reusable UI components as the app grows
 - `assets`: source assets imported by React
@@ -51,3 +55,17 @@ such values as public because they are bundled into the app.
 Current placeholder variables:
 
 - `VITE_API_BASE_URL`: backend API base URL
+- `VITE_KAKAO_REST_API_KEY`: public Kakao REST API key for OAuth authorization
+- `VITE_KAKAO_REDIRECT_URI`: Kakao redirect URI; defaults in code to
+  `/auth/kakao/callback` on the current origin when omitted
+
+## Auth
+
+Kakao login starts from the main screen using Kakao's OAuth authorization URL.
+The callback route reads the returned `code`, verifies the OAuth `state`, then
+POSTs `{ "code": string }` to `POST /api/auth/kakao`. The expected response is
+`{ "token": string, "member": { "id": number, "name": string } }`.
+
+The frontend stores that response in `localStorage` under
+`unsik:auth_session` so the current minimal app can display member context and
+reuse the token for future API calls.

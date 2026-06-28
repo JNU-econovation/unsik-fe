@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { KakaoCallbackScreen } from '@/components/auth/kakao-callback-screen';
 import { MainScreen } from '@/components/main/main-screen';
 import { RoomListScreen } from '@/components/rooms/room-list-screen';
+import type { AuthSession } from '@/services/auth';
+import { createKakaoLoginUrl, KAKAO_CALLBACK_PATH, loadAuthSession } from '@/services/auth';
 
-type AppRoute = '/main' | '/grouplist';
+type AppRoute = '/main' | '/grouplist' | typeof KAKAO_CALLBACK_PATH;
 
 const DEFAULT_ROUTE: AppRoute = '/main';
 
 function getAppRoute(pathname: string): AppRoute {
+  if (pathname === KAKAO_CALLBACK_PATH) {
+    return KAKAO_CALLBACK_PATH;
+  }
+
   if (pathname === '/grouplist') {
     return '/grouplist';
   }
@@ -17,6 +24,8 @@ function getAppRoute(pathname: string): AppRoute {
 
 export function App() {
   const [route, setRoute] = useState<AppRoute>(() => getAppRoute(window.location.pathname));
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() => loadAuthSession());
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     const normalizedRoute = getAppRoute(window.location.pathname);
@@ -44,9 +53,48 @@ export function App() {
     setRoute(nextRoute);
   }, []);
 
-  if (route === '/grouplist') {
-    return <RoomListScreen onBack={() => navigate('/main')} />;
+  const handleKakaoLogin = useCallback(() => {
+    setLoginError(null);
+
+    try {
+      window.location.assign(createKakaoLoginUrl());
+    } catch (error) {
+      setLoginError(getErrorMessage(error));
+    }
+  }, []);
+
+  const handleAuthenticated = useCallback((nextSession: AuthSession) => {
+    setAuthSession(nextSession);
+    window.history.replaceState(null, '', '/grouplist');
+    setRoute('/grouplist');
+  }, []);
+
+  if (route === KAKAO_CALLBACK_PATH) {
+    return (
+      <KakaoCallbackScreen
+        onAuthenticated={handleAuthenticated}
+        onBackToMain={() => navigate('/main')}
+      />
+    );
   }
 
-  return <MainScreen onLogin={() => navigate('/grouplist')} />;
+  if (route === '/grouplist') {
+    return <RoomListScreen memberName={authSession?.member.name} onBack={() => navigate('/main')} />;
+  }
+
+  return (
+    <MainScreen
+      loginError={loginError}
+      onKakaoLogin={handleKakaoLogin}
+      onStart={() => navigate('/grouplist')}
+    />
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return '카카오 로그인을 시작할 수 없어요.';
 }

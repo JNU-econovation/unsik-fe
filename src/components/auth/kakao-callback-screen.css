@@ -1,0 +1,139 @@
+.kakao-callback-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(254, 229, 0, 0.14), transparent 28%),
+    #12103a;
+}
+
+.kakao-callback-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 342px);
+  text-align: center;
+}
+
+.kakao-callback-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fee500;
+  box-shadow: 0 8px 24px rgba(254, 229, 0, 0.18);
+  color: #191919;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.kakao-callback-symbol:empty::before {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(25, 25, 25, 0.26);
+  border-top-color: #191919;
+  border-radius: 50%;
+  content: '';
+  animation: kakao-callback-spin 820ms linear infinite;
+}
+
+.kakao-callback-panel h1 {
+  margin: 22px 0 0;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 36px;
+  letter-spacing: 0;
+}
+
+.kakao-callback-panel p {
+  max-width: 300px;
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 15px;
+  line-height: 23px;
+  letter-spacing: 0;
+}
+
+.kakao-callback-button {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 28px;
+  border: 0;
+  border-radius: 26px;
+  background: #fee500;
+  color: #191919;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 22px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kakao-callback-button:active {
+  opacity: 0.9;
+  transform: scale(0.99);
+}
+
+.kakao-callback-button:focus-visible {
+  outline: 2px solid #fff7c9;
+  outline-offset: 4px;
+}
+
+.kakao-callback-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  margin-top: 20px;
+}
+
+.kakao-callback-progress span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fee500;
+  animation: kakao-callback-pulse 900ms ease-in-out infinite;
+}
+
+.kakao-callback-progress span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.kakao-callback-progress span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kakao-callback-symbol:empty::before,
+  .kakao-callback-progress span {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}
+
+@keyframes kakao-callback-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes kakao-callback-pulse {
+  0%,
+  100% {
+    opacity: 0.36;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+}

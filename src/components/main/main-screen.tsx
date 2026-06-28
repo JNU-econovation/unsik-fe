@@ -2,7 +2,9 @@ import mascotImage from '@/assets/images/mascots/landing-mascots.png';
 import './main-screen.css';
 
 type MainScreenProps = {
-  onLogin: () => void;
+  loginError?: string | null;
+  onKakaoLogin: () => void;
+  onStart: () => void;
 };
 
 const COPY = {
@@ -40,7 +42,7 @@ const SPARKLES = [
   { left: 366, top: 435, size: 11, opacity: 0.48 },
 ] as const;
 
-export function MainScreen({ onLogin }: MainScreenProps) {
+export function MainScreen({ loginError = null, onKakaoLogin, onStart }: MainScreenProps) {
   return (
     <main className="main-screen">
       <section className="main-canvas" aria-labelledby="main-title">
@@ -65,7 +67,7 @@ export function MainScreen({ onLogin }: MainScreenProps) {
         </div>
 
         <footer className="main-footer">
-          <button className="main-cta-button" type="button" onClick={onLogin}>
+          <button className="main-cta-button" type="button" onClick={onStart}>
             <span className="main-cta-shimmer" />
             <span className="main-cta-label">{COPY.cta}</span>
           </button>
@@ -73,11 +75,17 @@ export function MainScreen({ onLogin }: MainScreenProps) {
           <button
             className="main-kakao-login-button"
             type="button"
-            onClick={onLogin}
+            onClick={onKakaoLogin}
             aria-label={COPY.kakaoLoginLabel}
           >
             <span className="main-kakao-login-label">{COPY.kakaoLogin}</span>
           </button>
+
+          {loginError ? (
+            <p className="main-login-error" role="alert">
+              {loginError}
+            </p>
+          ) : null}
         </footer>
       </section>
     </main>

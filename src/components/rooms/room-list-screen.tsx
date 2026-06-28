@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import './room-list-screen.css';
 
 type RoomListScreenProps = {
+  memberName?: string;
   onBack: () => void;
 };
 
@@ -115,7 +116,7 @@ function createRoomLink(code: string) {
   return `${window.location.origin}/grouplist?code=${encodeURIComponent(code)}`;
 }
 
-export function RoomListScreen({ onBack }: RoomListScreenProps) {
+export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -265,7 +266,8 @@ export function RoomListScreen({ onBack }: RoomListScreenProps) {
         <header className="room-list-header">
           <h1 id="room-list-title">내 그룹</h1>
           <p>
-            총 {rooms.length}개의 방 <span aria-hidden="true">·</span> 목데이터
+            {memberName ? `${memberName}님 · ` : ''}총 {rooms.length}개의 방{' '}
+            <span aria-hidden="true">·</span> 목데이터
           </p>
         </header>
 

@@ -58,3 +58,11 @@ copy .env.example .env
 
 Only variables prefixed with `VITE_` should be read by client code, and they are
 public in the app bundle.
+
+Current local variables:
+
+```bash
+VITE_API_BASE_URL=http://localhost:3000
+VITE_KAKAO_REST_API_KEY=your-kakao-rest-api-key
+VITE_KAKAO_REDIRECT_URI=http://localhost:5173/auth/kakao/callback
+```
