@@ -60,6 +60,9 @@ folders only when the app needs them.
 - PowerShell may block `npm.ps1`; use `npm.cmd` for npm scripts.
 - `npm run clean` uses `node scripts/clean-dist.mjs` so local Windows builds
   and Linux deploy builds such as Vercel use the same cross-platform cleanup.
+- Vercel deployment uses `vercel.json` to rewrite all routes to `index.html`.
+  This is required because `/main`, `/grouplist`, and `/groups/:groupId/votes`
+  are browser-handled SPA routes, not physical files on the server.
 - Git may report `dubious ownership` in this folder. Use a one-off
   `git -c safe.directory='<repo-root>' ...`
   command unless the user asks to change global git config.
