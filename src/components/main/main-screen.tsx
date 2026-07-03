@@ -4,13 +4,11 @@ import './main-screen.css';
 type MainScreenProps = {
   loginError?: string | null;
   onKakaoLogin: () => void;
-  onStart: () => void;
 };
 
 const COPY = {
   title: '오늘 뭐 먹지?\n운명에게 물어봐.',
   subtitle: '세 점쟁이 셰프가 당신의 한 끼를 점쳐 드려요.',
-  cta: '메뉴 점 보러 가기',
   kakaoLogin: '카카오로 시작하기',
   kakaoLoginLabel: '카카오 계정으로 시작하기',
   mascotsLabel: '별의 셰프, 운명의 셰프, 달의 점쟁이 캐릭터',
@@ -42,7 +40,7 @@ const SPARKLES = [
   { left: 366, top: 435, size: 11, opacity: 0.48 },
 ] as const;
 
-export function MainScreen({ loginError = null, onKakaoLogin, onStart }: MainScreenProps) {
+export function MainScreen({ loginError = null, onKakaoLogin }: MainScreenProps) {
   return (
     <main className="main-screen">
       <section className="main-canvas" aria-labelledby="main-title">
@@ -67,11 +65,6 @@ export function MainScreen({ loginError = null, onKakaoLogin, onStart }: MainScr
         </div>
 
         <footer className="main-footer">
-          <button className="main-cta-button" type="button" onClick={onStart}>
-            <span className="main-cta-shimmer" />
-            <span className="main-cta-label">{COPY.cta}</span>
-          </button>
-
           <button
             className="main-kakao-login-button"
             type="button"

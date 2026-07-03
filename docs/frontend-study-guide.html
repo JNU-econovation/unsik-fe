@@ -475,8 +475,8 @@
         place-items: center;
         min-height: 3.4rem;
         border-radius: 999px;
-        background: #b8872a;
-        color: #fff;
+        background: #fee500;
+        color: #191919;
         font-weight: 900;
         margin-top: 1.2rem;
       }
@@ -640,8 +640,10 @@
           <h2>1. 현재 만든 것</h2>
           <p>
             지금 저장소는 React 웹 프론트엔드입니다. 네이티브 앱이나 Expo가 아니라,
-            브라우저에서 열리는 웹 앱입니다. 현재는 <code>/main</code> 메인 화면과
-            <code>/grouplist</code> 그룹 목록 화면이 있으며, 메인 화면에서 시작 버튼을 누르면 그룹 목록으로 이동합니다.
+            브라우저에서 열리는 웹 앱입니다. 현재는 <code>/main</code> 메인 화면,
+            <code>/auth/kakao/callback</code> 카카오 인증 콜백 화면,
+            <code>/grouplist</code> 그룹 목록 화면이 있습니다. 메인 화면의 카카오 버튼은
+            Kakao OAuth로 이동하고, 인증이 끝나면 그룹 목록으로 이동합니다.
           </p>
 
           <div class="two-col">
@@ -650,15 +652,17 @@
               <ul>
                 <li>상단에는 <code>FOOD TAROT</code> 라벨이 있습니다.</li>
                 <li>제목은 <code>오늘 뭐 먹지?</code>, <code>운명에게 물어봐.</code> 두 줄입니다.</li>
-                <li>부제목과 CTA 버튼, 카카오 시작하기 버튼이 있습니다.</li>
+                <li>부제목과 카카오 시작하기 버튼이 있습니다.</li>
                 <li>캐릭터 이미지는 <code>assets/images/mascots/landing-mascots.png</code>에서 가져옵니다.</li>
                 <li>별, 반짝임, 달 배경은 이미지가 아니라 대부분 CSS와 JSX 요소로 만듭니다.</li>
               </ul>
 
               <div class="callout">
                 <strong>중요한 상태:</strong>
-                실제 인증과 백엔드는 아직 연결하지 않았습니다. 지금 로그인 동작은 프론트 안에서
-                <code>/grouplist</code>로 이동시키는 목 흐름입니다.
+                카카오 로그인 플로우는 백엔드와 연결되어 있습니다. 프론트는 Kakao 인증 URL을 만들고,
+                콜백에서 받은 <code>code</code>를 <code>VITE_API_BASE_URL</code>의
+                <code>POST /api/auth/kakao</code>로 보냅니다. 다만 그룹 목록 데이터는 아직 서버와
+                연결되지 않은 로컬 목데이터입니다.
               </div>
 
               <h3>그룹 목록 화면의 구성</h3>
@@ -679,8 +683,7 @@
               <div class="phone-orb">
                 <div class="phone-mascots" aria-hidden="true">✦</div>
               </div>
-              <div class="phone-button">메뉴 점 보러 가기</div>
-              <p class="phone-copy">카카오로 시작하기</p>
+              <div class="phone-button">카카오로 시작하기</div>
             </div>
           </div>
         </section>
@@ -705,7 +708,10 @@
               <tr>
                 <td>Controller 메서드</td>
                 <td>사용자 요청을 받아 화면이나 JSON을 반환</td>
-                <td>아직 없음. 프론트는 브라우저에서 실행되고, API 서버는 나중에 연결합니다.</td>
+                <td>
+                  <code>src/services/auth.ts</code>가 <code>POST /api/auth/kakao</code>를 호출합니다.
+                  그룹 목록 API는 아직 연결 전입니다.
+                </td>
               </tr>
               <tr>
                 <td>Thymeleaf/JSP 템플릿</td>
@@ -853,6 +859,14 @@
               <span class="muted">메인 화면 전용 CSS입니다. 위치, 크기, 색상, 모바일 대응, 애니메이션을 담당합니다.</span>
             </div>
             <div class="file-item">
+              <strong><code>src/components/auth/kakao-callback-screen.tsx</code></strong>
+              <span class="muted">카카오가 돌려준 <code>code</code>와 <code>state</code>를 확인하고 백엔드 인증 요청을 시작하는 콜백 화면입니다.</span>
+            </div>
+            <div class="file-item">
+              <strong><code>src/services/auth.ts</code></strong>
+              <span class="muted">카카오 로그인 URL 생성, OAuth state 검증, <code>POST /api/auth/kakao</code> 호출, 인증 세션 저장을 담당합니다.</span>
+            </div>
+            <div class="file-item">
               <strong><code>src/components/rooms/room-list-screen.tsx</code></strong>
               <span class="muted">그룹 목록 화면입니다. 로컬 목데이터 방 목록, 방 만들기, 링크 복사, 이름 변경, 삭제, 메뉴 열고 닫기 상태를 관리합니다.</span>
             </div>
@@ -895,7 +909,7 @@
     return &lt;RoomListScreen onBack={() =&gt; navigate('/main')} /&gt;;
   }
 
-  return &lt;MainScreen onLogin={() =&gt; navigate('/grouplist')} /&gt;;
+  return &lt;MainScreen onKakaoLogin={handleKakaoLogin} /&gt;;
 }</code></pre>
 
           <h3>JSX</h3>
@@ -912,7 +926,7 @@
           <p>
             props는 부모 컴포넌트가 자식 컴포넌트에게 전달하는 입력값입니다.
             Java에서 생성자 파라미터나 메서드 파라미터처럼 생각하면 됩니다.
-            현재 <code>MainScreen</code>은 <code>onLogin</code>을 받고,
+            현재 <code>MainScreen</code>은 <code>onKakaoLogin</code>을 받고,
             <code>RoomListScreen</code>은 <code>onBack</code>을 받아 부모인 <code>App</code>에 화면 이동을 요청합니다.
           </p>
 
@@ -1050,14 +1064,16 @@
         </section>
 
         <section class="section" id="api">
-          <h2>9. 나중에 백엔드와 연결할 때</h2>
+          <h2>9. 백엔드 연결 상태와 다음 연결 지점</h2>
           <p>
-            지금 그룹 목록 화면은 서버와 통신하지 않습니다. 방 목록, 방 만들기, 이름 변경, 삭제는
-            <code>RoomListScreen</code> 안의 로컬 목데이터 state로만 처리됩니다. 새로고침하면 초기 목데이터로 돌아갑니다.
-            백엔드가 준비되면 이 목데이터 조작을 Spring Boot API 호출로 교체하면 됩니다.
+            카카오 로그인은 백엔드와 통신합니다. <code>src/services/auth.ts</code>에서
+            <code>VITE_API_BASE_URL</code>을 기준으로 <code>POST /api/auth/kakao</code>에 인증 코드를 보내고,
+            응답으로 받은 토큰과 회원 정보를 브라우저 저장소에 보관합니다. 반면 그룹 목록 화면은 아직 서버와
+            통신하지 않습니다. 방 목록, 방 만들기, 이름 변경, 삭제는 <code>RoomListScreen</code> 안의
+            로컬 목데이터 state로만 처리됩니다. 새로고침하면 초기 목데이터로 돌아갑니다.
           </p>
 
-          <h3>예상 흐름</h3>
+          <h3>그룹 목록 API 연결 예상 흐름</h3>
           <ol>
             <li>현재는 사용자가 방 만들기, 이름 변경, 삭제를 누르면 React 이벤트 핸들러가 실행됩니다.</li>
             <li>이벤트 핸들러가 로컬 state의 방 배열을 직접 바꿉니다.</li>
@@ -1072,6 +1088,8 @@
             Vite에서 브라우저 코드로 노출되는 환경변수는 <code>VITE_</code>로 시작해야 합니다.
           </p>
           <pre><code>VITE_API_BASE_URL=http://localhost:8080</code></pre>
+          <pre><code>VITE_KAKAO_REST_API_KEY=카카오 REST API 키
+VITE_KAKAO_REDIRECT_URI=http://localhost:5173/auth/kakao/callback</code></pre>
 
           <div class="warning callout">
             <strong>다시 강조:</strong>
@@ -1207,10 +1225,10 @@
           <ol class="checklist">
             <li><strong>HTML과 DOM:</strong> <code>index.html</code>의 <code>root</code>가 왜 필요한지 이해합니다.</li>
             <li><strong>JSX:</strong> <code>MainScreen</code>의 태그 구조를 HTML처럼 읽어 봅니다.</li>
-            <li><strong>CSS:</strong> <code>.main-title</code>, <code>.main-cta-button</code>, <code>@media</code>를 바꿔 보며 화면 변화를 확인합니다.</li>
+            <li><strong>CSS:</strong> <code>.main-title</code>, <code>.main-kakao-login-button</code>, <code>@media</code>를 바꿔 보며 화면 변화를 확인합니다.</li>
             <li><strong>TypeScript:</strong> <code>COPY</code>에 새 문구를 추가하고 타입 오류가 나는 상황을 일부러 만들어 봅니다.</li>
             <li><strong>React state:</strong> 버튼 클릭 시 임시 결과 문구가 바뀌는 작은 기능을 만들어 봅니다.</li>
-            <li><strong>API 연결:</strong> Spring Boot API가 준비되면 <code>fetch</code>로 호출하고 loading/error/success 상태를 나눕니다.</li>
+            <li><strong>API 연결:</strong> 카카오 인증 흐름을 먼저 읽고, 그룹 목록 API가 준비되면 <code>fetch</code>로 호출하고 loading/error/success 상태를 나눕니다.</li>
             <li><strong>라우팅:</strong> 화면이 2개 이상 필요해질 때 React Router 도입 여부를 판단합니다.</li>
           </ol>
 

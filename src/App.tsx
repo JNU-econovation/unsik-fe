@@ -86,7 +86,6 @@ export function App() {
     <MainScreen
       loginError={loginError}
       onKakaoLogin={handleKakaoLogin}
-      onStart={() => navigate('/grouplist')}
     />
   );
 }
