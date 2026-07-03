@@ -1,32 +1,38 @@
 import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+
+import type { BackendContext, GroupResponse } from '@/services/backend';
+import { createGroup, deleteGroup, joinGroup, listGroupMembers, listGroups } from '@/services/backend';
+
 import './room-list-screen.css';
 
 type RoomListScreenProps = {
+  memberId?: number;
   memberName?: string;
   onBack: () => void;
+  onOpenRoom: (roomId: string) => void;
+  token?: string;
 };
 
 type RoomTone = 'featured' | 'muted' | 'quiet';
 
 type Room = {
   id: string;
+  groupId?: number;
   icon: string;
   name: string;
   code: string;
   members: {
-    current: number;
-    max: number;
+    current: number | null;
     colors: string[];
   };
   recommendation: string;
 };
 
-type MenuAction = 'copy' | 'rename' | 'delete';
+type MenuAction = 'copy' | 'delete';
 
 type DialogState =
   | { type: 'create' }
-  | { type: 'rename'; roomId: string }
   | { type: 'delete'; roomId: string };
 
 type RoomFormValues = {
@@ -35,52 +41,13 @@ type RoomFormValues = {
   maxMembers: number;
 };
 
-const INITIAL_ROOMS: Room[] = [
-  {
-    id: 'unsik-team',
-    icon: '🍽️',
-    name: '운식팀',
-    code: 'UNM-2024',
-    members: {
-      current: 4,
-      max: 6,
-      colors: ['#9e6bf5', '#f55947', '#4785f5', '#33c766'],
-    },
-    recommendation: '오늘 · 국수 추천됨',
-  },
-  {
-    id: 'cs-lunch',
-    icon: '☕',
-    name: 'CS 점심 모임',
-    code: 'CSL-0312',
-    members: {
-      current: 3,
-      max: 5,
-      colors: ['#9e6bf5', '#f55947', '#4785f5'],
-    },
-    recommendation: '어제 · 카페 추천됨',
-  },
-  {
-    id: 'dorm-room',
-    icon: '🏠',
-    name: '기숙사 룸메',
-    code: 'DRM-0505',
-    members: {
-      current: 2,
-      max: 4,
-      colors: ['#9e6bf5', '#f55947'],
-    },
-    recommendation: '3일 전 · 분식 추천됨',
-  },
-];
-
 const ICON_OPTIONS = ['🍽️', '☕', '🏠', '🍜', '🍕', '🥗'] as const;
+const DEFAULT_ROOM_ICON = ICON_OPTIONS[0];
 const MAX_MEMBER_OPTIONS = [4, 5, 6, 8] as const;
 const MEMBER_COLORS = ['#9e6bf5', '#f55947', '#4785f5', '#33c766', '#f5c829', '#21c2a9'] as const;
 
 const MENU_ITEMS: Array<{ action: MenuAction; icon: string; label: string; kind: 'normal' | 'danger' }> = [
   { action: 'copy', icon: '🔗', label: '링크 복사', kind: 'normal' },
-  { action: 'rename', icon: '✏️', label: '이름 변경', kind: 'normal' },
   { action: 'delete', icon: '🗑️', label: '방 삭제', kind: 'danger' },
 ];
 
@@ -104,23 +71,82 @@ function getRoomTone(index: number): RoomTone {
   return 'quiet';
 }
 
-function createRoomId() {
-  return `room-${Date.now()}-${Math.round(Math.random() * 9999)}`;
-}
-
-function createRoomCode() {
-  return `UNS-${Math.floor(1000 + Math.random() * 9000)}`;
-}
-
 function createRoomLink(code: string) {
   return `${window.location.origin}/grouplist?code=${encodeURIComponent(code)}`;
 }
 
-export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+async function groupToRoom(
+  group: GroupResponse,
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  iconOverride?: string,
+): Promise<Room> {
+  const members = await listGroupMembers(context, group.id).catch(() => null);
+  const memberCount = members?.length ?? null;
+
+  return {
+    id: String(group.id),
+    groupId: group.id,
+    icon: iconOverride ?? readGroupIcon(group.description) ?? DEFAULT_ROOM_ICON,
+    name: group.name,
+    code: group.inviteCode || `GRP-${group.id}`,
+    members: {
+      current: memberCount,
+      colors: memberCount === null ? [] : MEMBER_COLORS.slice(0, Math.min(Math.max(memberCount, 1), MEMBER_COLORS.length)),
+    },
+    recommendation: group.description || '투표를 만들어 메뉴를 정해보세요',
+  };
+}
+
+function readGroupIcon(description: string): string | null {
+  const [firstCharacter] = Array.from(description.trim());
+
+  if (firstCharacter && ICON_OPTIONS.some((option) => option === firstCharacter)) {
+    return firstCharacter;
+  }
+
+  return null;
+}
+
+function getRoomEmptyTitle(hasMemberId: boolean, errorMessage: string | null): string {
+  if (!hasMemberId) {
+    return '로그인이 필요해요';
+  }
+
+  if (errorMessage) {
+    return '방 목록을 불러오지 못했어요';
+  }
+
+  return '아직 참여 중인 방이 없어요';
+}
+
+function getRoomEmptyDescription(hasMemberId: boolean, errorMessage: string | null): string {
+  if (!hasMemberId) {
+    return '카카오 로그인 후 백엔드에 저장된 그룹을 조회할 수 있어요';
+  }
+
+  if (errorMessage) {
+    return errorMessage;
+  }
+
+  return '아래 버튼으로 첫 방을 만들어 보세요';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return '알 수 없는 오류가 발생했어요.';
+}
+
+export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token }: RoomListScreenProps) {
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [roomSourceLabel, setRoomSourceLabel] = useState('백엔드 API');
+  const [roomListError, setRoomListError] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -130,6 +156,56 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!memberId) {
+      setRooms([]);
+      setRoomSourceLabel('로그인 필요');
+      setRoomListError(null);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setIsLoadingRooms(true);
+    setRoomListError(null);
+
+    listGroups({ memberId, token })
+      .then(async (groups) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const nextRooms = await Promise.all(
+          groups.map((group) => groupToRoom(group, { memberId, token })),
+        );
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setRooms(nextRooms);
+        setRoomSourceLabel('백엔드 API');
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setRooms([]);
+        setRoomSourceLabel('오류');
+        setRoomListError(getErrorMessage(error));
+        showToast('그룹 목록 API 호출에 실패했어요');
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoadingRooms(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [memberId, token]);
 
   useEffect(() => {
     if (!openMenuId) {
@@ -181,44 +257,82 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
     setDialog(null);
   };
 
-  const handleCreateRoom = (values: RoomFormValues) => {
-    const room: Room = {
-      id: createRoomId(),
-      icon: values.icon,
-      name: values.name.trim(),
-      code: createRoomCode(),
-      members: {
-        current: 1,
-        max: values.maxMembers,
-        colors: [MEMBER_COLORS[0]],
-      },
-      recommendation: '방금 생성됨 · 추천 대기',
-    };
+  const handleCreateRoom = async (values: RoomFormValues) => {
+    if (!memberId) {
+      showToast('로그인 후 방을 만들 수 있어요');
+      return;
+    }
 
-    setRooms((currentRooms) => [room, ...currentRooms]);
-    setOpenMenuId(null);
-    setDialog(null);
-    showToast(`${room.name} 방을 만들었어요`);
+    try {
+      const group = await createGroup(
+        { memberId, token },
+        {
+          name: values.name.trim(),
+          description: `${values.icon} 최대 ${values.maxMembers}명`,
+        },
+      );
+      const room = await groupToRoom(group, { memberId, token }, values.icon);
+
+      setRooms((currentRooms) => [room, ...currentRooms]);
+      setRoomSourceLabel('백엔드 API');
+      setRoomListError(null);
+      setOpenMenuId(null);
+      setDialog(null);
+      showToast(`${room.name} 방을 만들었어요`);
+    } catch (error) {
+      showToast(`그룹 생성 API 호출에 실패했어요: ${getErrorMessage(error)}`);
+    }
   };
 
-  const handleRenameRoom = (roomId: string, values: RoomFormValues) => {
-    const nextName = values.name.trim();
-
-    setRooms((currentRooms) =>
-      currentRooms.map((room) => (room.id === roomId ? { ...room, name: nextName } : room)),
-    );
-    setOpenMenuId(null);
-    setDialog(null);
-    showToast('방 이름을 바꿨어요');
-  };
-
-  const handleDeleteRoom = (roomId: string) => {
+  const handleDeleteRoom = async (roomId: string) => {
     const targetRoom = rooms.find((room) => room.id === roomId);
+
+    if (!memberId || !targetRoom?.groupId) {
+      showToast('백엔드 그룹 정보가 없어 삭제할 수 없어요');
+      return;
+    }
+
+    try {
+      await deleteGroup({ memberId, token }, targetRoom.groupId);
+    } catch (error) {
+      showToast(`그룹 삭제 API 호출에 실패했어요: ${getErrorMessage(error)}`);
+      return;
+    }
 
     setRooms((currentRooms) => currentRooms.filter((room) => room.id !== roomId));
     setOpenMenuId(null);
     setDialog(null);
     showToast(`${targetRoom?.name ?? '방'}을 삭제했어요`);
+  };
+
+  const handleJoinRoom = async () => {
+    if (!memberId) {
+      showToast('로그인 후 초대코드로 참여할 수 있어요');
+      return;
+    }
+
+    const inviteCode = window.prompt('초대코드를 입력해 주세요');
+
+    if (!inviteCode?.trim()) {
+      return;
+    }
+
+    try {
+      const group = await joinGroup({ memberId, token }, inviteCode.trim());
+      const room = await groupToRoom(group, { memberId, token });
+
+      setRooms((currentRooms) => {
+        if (currentRooms.some((currentRoom) => currentRoom.id === room.id)) {
+          return currentRooms;
+        }
+
+        return [room, ...currentRooms];
+      });
+      setRoomSourceLabel('백엔드 API');
+      showToast(`${room.name} 방에 참여했어요`);
+    } catch {
+      showToast('초대코드 참여 API 호출에 실패했어요');
+    }
   };
 
   const handleMenuAction = async (room: Room, action: MenuAction) => {
@@ -237,18 +351,10 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
       return;
     }
 
-    if (action === 'rename') {
-      setDialog({ type: 'rename', roomId: room.id });
-      return;
-    }
-
     setDialog({ type: 'delete', roomId: room.id });
   };
 
-  const activeRoom =
-    dialog?.type === 'rename' || dialog?.type === 'delete'
-      ? rooms.find((room) => room.id === dialog.roomId)
-      : null;
+  const activeRoom = dialog?.type === 'delete' ? rooms.find((room) => room.id === dialog.roomId) : null;
 
   return (
     <main className="room-list-screen">
@@ -267,7 +373,7 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
           <h1 id="room-list-title">내 그룹</h1>
           <p>
             {memberName ? `${memberName}님 · ` : ''}총 {rooms.length}개의 방{' '}
-            <span aria-hidden="true">·</span> 목데이터
+            <span aria-hidden="true">·</span> {isLoadingRooms ? '불러오는 중' : roomSourceLabel}
           </p>
         </header>
 
@@ -283,6 +389,7 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
                   key={room.id}
                   isMenuOpen={openMenuId === room.id}
                   onMenuAction={(action) => void handleMenuAction(room, action)}
+                  onOpen={() => onOpenRoom(room.id)}
                   onToggleMenu={() => setOpenMenuId((current) => (current === room.id ? null : room.id))}
                   room={room}
                   style={{ '--room-delay': `${index * 80}ms` } as CSSProperties}
@@ -292,8 +399,8 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
             </div>
           ) : (
             <div className="room-empty-state">
-              <p>아직 참여 중인 방이 없어요</p>
-              <span>아래 버튼으로 첫 방을 만들어 보세요</span>
+              <p>{getRoomEmptyTitle(Boolean(memberId), roomListError)}</p>
+              <span>{getRoomEmptyDescription(Boolean(memberId), roomListError)}</span>
             </div>
           )}
         </section>
@@ -307,7 +414,7 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
             <span aria-hidden="true">✦</span>
             <span>방 만들기</span>
           </button>
-          <button className="room-list-join" type="button" onClick={() => showToast('코드 참여는 다음 화면에서 연결할게요')}>
+          <button className="room-list-join" type="button" onClick={() => void handleJoinRoom()}>
             <span aria-hidden="true">🔗</span>
             <span>코드로 참여하기</span>
           </button>
@@ -318,31 +425,19 @@ export function RoomListScreen({ memberName, onBack }: RoomListScreenProps) {
 
       {dialog?.type === 'create' ? (
         <RoomFormDialog
-          mode="create"
           onClose={closeDialog}
-          onSubmit={handleCreateRoom}
+          onSubmit={(values) => void handleCreateRoom(values)}
           submitLabel="방 만들기"
           title="새 방 만들기"
-        />
-      ) : null}
-
-      {dialog?.type === 'rename' && activeRoom ? (
-        <RoomFormDialog
-          initialName={activeRoom.name}
-          mode="rename"
-          onClose={closeDialog}
-          onSubmit={(values) => handleRenameRoom(activeRoom.id, values)}
-          submitLabel="이름 변경"
-          title="방 이름 변경"
         />
       ) : null}
 
       {dialog?.type === 'delete' && activeRoom ? (
         <ConfirmDialog
           dangerLabel="삭제"
-          description={`${activeRoom.name} 방을 목록에서 삭제할까요? 목데이터라 새로고침하면 초기 목록으로 돌아옵니다.`}
+          description={`${activeRoom.name} 방을 삭제할까요? 백엔드에서 그룹과 관련 데이터가 함께 삭제됩니다.`}
           onClose={closeDialog}
-          onConfirm={() => handleDeleteRoom(activeRoom.id)}
+          onConfirm={() => void handleDeleteRoom(activeRoom.id)}
           title="방 삭제"
         />
       ) : null}
@@ -354,12 +449,13 @@ type RoomCardProps = {
   room: Room;
   tone: RoomTone;
   isMenuOpen: boolean;
+  onOpen: () => void;
   onToggleMenu: () => void;
   onMenuAction: (action: MenuAction) => void;
   style: CSSProperties;
 };
 
-function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
+function RoomCard({ room, tone, isMenuOpen, onOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
   const cardClassName = `room-card room-card-${tone}${isMenuOpen ? ' room-card-open' : ''}`;
 
   return (
@@ -374,7 +470,7 @@ function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }:
           <p>코드&nbsp; {room.code}</p>
         </div>
 
-        <button className="room-enter-button" type="button">
+        <button className="room-enter-button" type="button" onClick={onOpen}>
           들어가기
         </button>
 
@@ -402,7 +498,7 @@ function RoomCard({ room, tone, isMenuOpen, onToggleMenu, onMenuAction, style }:
           ))}
         </div>
         <p className="room-member-count">
-          {room.members.current}/{room.members.max}명
+          {room.members.current === null ? '인원 정보 없음' : `${room.members.current}명`}
         </p>
         <p className="room-recommendation">{room.recommendation}</p>
       </div>
@@ -440,23 +536,19 @@ function RoomMenu({
 }
 
 type RoomFormDialogProps = {
-  mode: 'create' | 'rename';
   title: string;
   submitLabel: string;
-  initialName?: string;
   onClose: () => void;
   onSubmit: (values: RoomFormValues) => void;
 };
 
 function RoomFormDialog({
-  mode,
   title,
   submitLabel,
-  initialName = '',
   onClose,
   onSubmit,
 }: RoomFormDialogProps) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState('');
   const [icon, setIcon] = useState<(typeof ICON_OPTIONS)[number]>(ICON_OPTIONS[0]);
   const [maxMembers, setMaxMembers] = useState<(typeof MAX_MEMBER_OPTIONS)[number]>(MAX_MEMBER_OPTIONS[2]);
   const [error, setError] = useState('');
@@ -502,43 +594,39 @@ function RoomFormDialog({
           />
         </label>
 
-        {mode === 'create' ? (
-          <>
-            <div className="room-field">
-              <span>아이콘</span>
-              <div className="room-icon-options">
-                {ICON_OPTIONS.map((option) => (
-                  <button
-                    className={option === icon ? 'room-icon-option room-icon-option-selected' : 'room-icon-option'}
-                    key={option}
-                    type="button"
-                    onClick={() => setIcon(option)}
-                    aria-pressed={option === icon}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="room-field">
+          <span>아이콘</span>
+          <div className="room-icon-options">
+            {ICON_OPTIONS.map((option) => (
+              <button
+                className={option === icon ? 'room-icon-option room-icon-option-selected' : 'room-icon-option'}
+                key={option}
+                type="button"
+                onClick={() => setIcon(option)}
+                aria-pressed={option === icon}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            <div className="room-field">
-              <span>최대 인원</span>
-              <div className="room-member-options">
-                {MAX_MEMBER_OPTIONS.map((option) => (
-                  <button
-                    className={option === maxMembers ? 'room-member-option room-member-option-selected' : 'room-member-option'}
-                    key={option}
-                    type="button"
-                    onClick={() => setMaxMembers(option)}
-                    aria-pressed={option === maxMembers}
-                  >
-                    {option}명
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : null}
+        <div className="room-field">
+          <span>최대 인원</span>
+          <div className="room-member-options">
+            {MAX_MEMBER_OPTIONS.map((option) => (
+              <button
+                className={option === maxMembers ? 'room-member-option room-member-option-selected' : 'room-member-option'}
+                key={option}
+                type="button"
+                onClick={() => setMaxMembers(option)}
+                aria-pressed={option === maxMembers}
+              >
+                {option}명
+              </button>
+            ))}
+          </div>
+        </div>
 
         {error ? <p className="room-dialog-error">{error}</p> : null}
 
