@@ -16,6 +16,9 @@ current, and operational.
 
 - `docs/frontend-study-guide.html`: dark-mode study guide for a backend
   developer learning the current React frontend.
+- `docs/project-implementation-overview.html`: human-readable project
+  implementation overview covering recent work, API usage, maintainability
+  choices, and remaining backend contract gaps.
 
 ## Maintenance Rule
 
