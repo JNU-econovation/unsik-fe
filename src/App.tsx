@@ -3,23 +3,53 @@ import { useCallback, useEffect, useState } from 'react';
 import { KakaoCallbackScreen } from '@/components/auth/kakao-callback-screen';
 import { MainScreen } from '@/components/main/main-screen';
 import { RoomListScreen } from '@/components/rooms/room-list-screen';
+import { VoteFlowScreen } from '@/components/votes/vote-flow-screen';
 import type { AuthSession } from '@/services/auth';
 import { createKakaoLoginUrl, KAKAO_CALLBACK_PATH, loadAuthSession } from '@/services/auth';
 
-type AppRoute = '/main' | '/grouplist' | typeof KAKAO_CALLBACK_PATH;
+type AppRoute =
+  | { type: 'main' }
+  | { type: 'groups' }
+  | { type: 'authCallback' }
+  | { type: 'groupVotes'; groupId: string };
 
-const DEFAULT_ROUTE: AppRoute = '/main';
+const DEFAULT_ROUTE: AppRoute = { type: 'main' };
 
 function getAppRoute(pathname: string): AppRoute {
   if (pathname === KAKAO_CALLBACK_PATH) {
-    return KAKAO_CALLBACK_PATH;
+    return { type: 'authCallback' };
   }
 
   if (pathname === '/grouplist') {
-    return '/grouplist';
+    return { type: 'groups' };
+  }
+
+  const groupVotesMatch = pathname.match(/^\/groups\/([^/]+)\/votes$/);
+
+  if (groupVotesMatch) {
+    return {
+      type: 'groupVotes',
+      groupId: decodeURIComponent(groupVotesMatch[1]),
+    };
   }
 
   return DEFAULT_ROUTE;
+}
+
+function getRoutePath(route: AppRoute): string {
+  if (route.type === 'authCallback') {
+    return KAKAO_CALLBACK_PATH;
+  }
+
+  if (route.type === 'groups') {
+    return '/grouplist';
+  }
+
+  if (route.type === 'groupVotes') {
+    return `/groups/${encodeURIComponent(route.groupId)}/votes`;
+  }
+
+  return '/main';
 }
 
 export function App() {
@@ -30,8 +60,10 @@ export function App() {
   useEffect(() => {
     const normalizedRoute = getAppRoute(window.location.pathname);
 
-    if (window.location.pathname !== normalizedRoute) {
-      window.history.replaceState(null, '', normalizedRoute);
+    const normalizedPath = getRoutePath(normalizedRoute);
+
+    if (window.location.pathname !== normalizedPath) {
+      window.history.replaceState(null, '', normalizedPath);
     }
 
     const handlePopState = () => {
@@ -46,8 +78,10 @@ export function App() {
   }, []);
 
   const navigate = useCallback((nextRoute: AppRoute) => {
-    if (window.location.pathname !== nextRoute) {
-      window.history.pushState(null, '', nextRoute);
+    const nextPath = getRoutePath(nextRoute);
+
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState(null, '', nextPath);
     }
 
     setRoute(nextRoute);
@@ -66,28 +100,43 @@ export function App() {
   const handleAuthenticated = useCallback((nextSession: AuthSession) => {
     setAuthSession(nextSession);
     window.history.replaceState(null, '', '/grouplist');
-    setRoute('/grouplist');
+    setRoute({ type: 'groups' });
   }, []);
 
-  if (route === KAKAO_CALLBACK_PATH) {
+  if (route.type === 'authCallback') {
     return (
       <KakaoCallbackScreen
         onAuthenticated={handleAuthenticated}
-        onBackToMain={() => navigate('/main')}
+        onBackToMain={() => navigate({ type: 'main' })}
       />
     );
   }
 
-  if (route === '/grouplist') {
-    return <RoomListScreen memberName={authSession?.member.name} onBack={() => navigate('/main')} />;
+  if (route.type === 'groups') {
+    return (
+      <RoomListScreen
+        memberId={authSession?.member.id}
+        memberName={authSession?.member.name}
+        onBack={() => navigate({ type: 'main' })}
+        onOpenRoom={(roomId) => navigate({ type: 'groupVotes', groupId: roomId })}
+        token={authSession?.token}
+      />
+    );
   }
 
-  return (
-    <MainScreen
-      loginError={loginError}
-      onKakaoLogin={handleKakaoLogin}
-    />
-  );
+  if (route.type === 'groupVotes') {
+    return (
+      <VoteFlowScreen
+        groupId={route.groupId}
+        memberId={authSession?.member.id}
+        memberName={authSession?.member.name}
+        onBackToRooms={() => navigate({ type: 'groups' })}
+        token={authSession?.token}
+      />
+    );
+  }
+
+  return <MainScreen loginError={loginError} onKakaoLogin={handleKakaoLogin} />;
 }
 
 function getErrorMessage(error: unknown): string {
