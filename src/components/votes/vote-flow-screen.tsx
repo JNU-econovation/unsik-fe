@@ -14,13 +14,13 @@ import type {
   VoteSummaryResponse,
 } from '@/services/backend';
 import {
-  closeVote,
   createVote,
   deleteVote,
   getVote,
   listGroupMembers,
   listGroupVotes,
   listMenus,
+  listPendingPreferenceMembers,
   recommendMenus,
   searchRestaurants,
   submitBallot,
@@ -191,6 +191,8 @@ export function VoteFlowScreen({
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [ballotChoices, setBallotChoices] = useState<Record<number, BallotChoice>>({});
+  const [submittedBallotVoteIds, setSubmittedBallotVoteIds] = useState<Set<number>>(() => new Set());
+  const [pendingPreferenceMemberIds, setPendingPreferenceMemberIds] = useState<Set<number> | null>(null);
   const [finalMenu, setFinalMenu] = useState<CandidateCard | null>(null);
   const [restaurants, setRestaurants] = useState<RestaurantDocument[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantDocument | null>(null);
@@ -205,6 +207,28 @@ export function VoteFlowScreen({
   const selectedMembers = members.filter((member) => selectedMemberIds.has(member.memberId));
   const currentCandidate = candidates[activeCardIndex] ?? null;
   const likedCandidate = candidates.find((candidate) => ballotChoices[candidate.menuId] === 'LIKE');
+  const hasSubmittedActiveBallot = activeVote?.id ? submittedBallotVoteIds.has(activeVote.id) : false;
+  const checkedStatusMemberIds = useMemo(() => {
+    const checkedMemberIds = new Set<number>();
+
+    if (pendingPreferenceMemberIds) {
+      selectedMembers.forEach((member) => {
+        if (!pendingPreferenceMemberIds.has(member.memberId)) {
+          checkedMemberIds.add(member.memberId);
+        }
+      });
+    }
+
+    if (hasSubmittedActiveBallot && memberId) {
+      checkedMemberIds.add(memberId);
+    }
+
+    if (finalMenu) {
+      selectedMembers.forEach((member) => checkedMemberIds.add(member.memberId));
+    }
+
+    return checkedMemberIds;
+  }, [finalMenu, hasSubmittedActiveBallot, memberId, pendingPreferenceMemberIds, selectedMembers]);
   const excludedMenus = useMemo(
     () => menuCatalog.filter((menu) => excludedMenuIds.has(menu.id)),
     [excludedMenuIds, menuCatalog],
@@ -349,6 +373,37 @@ export function VoteFlowScreen({
   }, [menuCatalogStatus, step]);
 
   useEffect(() => {
+    if (step !== 'status' || !activeVote?.id || !context.memberId) {
+      setPendingPreferenceMemberIds(null);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    const voteId = activeVote.id;
+
+    listPendingPreferenceMembers({ memberId: context.memberId, token: context.token }, voteId)
+      .then((pendingMembers) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setPendingPreferenceMemberIds(new Set(pendingMembers.map((member) => member.memberId)));
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setPendingPreferenceMemberIds(null);
+        setApiMessage(`선호 제출 현황 API 호출 실패: ${getErrorMessage(error)}`);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [activeVote?.id, context.memberId, context.token, step]);
+
+  useEffect(() => {
     if (step !== 'final' || !finalMenu) {
       return undefined;
     }
@@ -411,6 +466,7 @@ export function VoteFlowScreen({
     setCandidates([]);
     setActiveCardIndex(0);
     setBallotChoices({});
+    setPendingPreferenceMemberIds(null);
     setFinalMenu(null);
     setRestaurants([]);
     setSelectedRestaurant(null);
@@ -502,9 +558,11 @@ export function VoteFlowScreen({
     setApiMessage(null);
 
     try {
+      setPendingPreferenceMemberIds(null);
       const detail = context.memberId ? await getVote({ memberId: context.memberId, token: context.token }, vote.voteId) : null;
       const nextSummary = detail ? toVoteSummary(detail) : vote;
       const nextCandidates = detail?.candidates.map(toCandidateCard) ?? [];
+      const hasSubmittedBallot = submittedBallotVoteIds.has(nextSummary.voteId);
 
       setVoteSummaries((current) =>
         current.map((summary) => (summary.voteId === nextSummary.voteId ? nextSummary : summary)),
@@ -523,6 +581,10 @@ export function VoteFlowScreen({
       if (detail?.resultMenu) {
         setFinalMenu(toCandidateCard(detail.resultMenu));
         setStep('final');
+      } else if (hasSubmittedBallot) {
+        setFinalMenu(null);
+        setApiMessage('내 투표는 제출됐습니다. 참여자 전원이 투표하면 결과가 자동 확정됩니다.');
+        setStep('status');
       } else {
         setFinalMenu(null);
         setStep(nextCandidates.length > 0 ? 'cards' : 'status');
@@ -549,15 +611,25 @@ export function VoteFlowScreen({
       return;
     }
 
+    const voteId = activeVote.id;
+
     setIsLoading(true);
     setApiMessage(null);
 
     try {
-      await deleteVote({ memberId: context.memberId, token: context.token }, activeVote.id);
-      setVoteSummaries((current) => current.filter((vote) => vote.voteId !== activeVote.id));
+      await deleteVote({ memberId: context.memberId, token: context.token }, voteId);
+      setVoteSummaries((current) => current.filter((vote) => vote.voteId !== voteId));
+      setSubmittedBallotVoteIds((current) => {
+        const next = new Set(current);
+
+        next.delete(voteId);
+
+        return next;
+      });
       setActiveVote(null);
       setCandidates([]);
       setBallotChoices({});
+      setPendingPreferenceMemberIds(null);
       setFinalMenu(null);
       setStep('list');
       showToast('투표를 삭제했어요.');
@@ -647,18 +719,10 @@ export function VoteFlowScreen({
       return;
     }
 
-    await submitCardBallot(nextChoices);
+    await handleFinalize(nextChoices);
   };
 
-  const submitCardBallot = async (choices: Record<number, BallotChoice>) => {
-    setApiMessage(null);
-
-    const nextFinalMenu = candidates.find((candidate) => choices[candidate.menuId] === 'LIKE') ?? candidates[0] ?? null;
-    setFinalMenu(nextFinalMenu);
-    setStep('reveal');
-  };
-
-  const handleFinalize = async () => {
+  const handleFinalize = async (choices: Record<number, BallotChoice> = ballotChoices) => {
     setIsLoading(true);
     setApiMessage(null);
 
@@ -668,12 +732,15 @@ export function VoteFlowScreen({
       return;
     }
 
+    const voteId = activeVote.id;
+
     const apiChoices = Object.fromEntries(
-      candidates.map((candidate) => [String(candidate.menuId), ballotChoices[candidate.menuId] ?? 'DISLIKE']),
+      candidates.map((candidate) => [String(candidate.menuId), choices[candidate.menuId] ?? 'DISLIKE']),
     );
 
     try {
-      await submitBallot({ memberId: context.memberId, token: context.token }, activeVote.id, apiChoices);
+      await submitBallot({ memberId: context.memberId, token: context.token }, voteId, apiChoices);
+      setSubmittedBallotVoteIds((current) => new Set(current).add(voteId));
     } catch (error) {
       setApiMessage(`호불호 투표 API 호출 실패: ${getErrorMessage(error)}`);
       setIsLoading(false);
@@ -681,34 +748,36 @@ export function VoteFlowScreen({
     }
 
     try {
-      const voteAfterBallot = await getVote({ memberId: context.memberId, token: context.token }, activeVote.id);
+      const voteAfterBallot = await getVote({ memberId: context.memberId, token: context.token }, voteId);
+      const nextSummary = toVoteSummary(voteAfterBallot);
+
+      setVoteSummaries((current) =>
+        current.map((summary) => (summary.voteId === voteId ? nextSummary : summary)),
+      );
 
       if (voteAfterBallot.resultMenu) {
         setFinalMenu(toCandidateCard(voteAfterBallot.resultMenu));
-        setVoteSummaries((current) =>
-          current.map((summary) =>
-            summary.voteId === activeVote.id ? { ...summary, status: getVoteStatusLabel(voteAfterBallot.status) } : summary,
-          ),
-        );
         setStep('final');
         setIsLoading(false);
         return;
       }
 
-      const closedMenu = await closeVote({ memberId: context.memberId, token: context.token }, activeVote.id);
-      setFinalMenu(toCandidateCard(closedMenu));
-      setStep('final');
+      setFinalMenu(null);
+      setActiveCardIndex(0);
+      setBallotChoices({});
+      setApiMessage('내 투표는 제출됐습니다. 참여자 전원이 투표하면 결과가 자동 확정됩니다.');
+      setStep('status');
       setIsLoading(false);
       return;
-    } catch (closeError) {
+    } catch (error) {
       try {
-        const vote = await getVote({ memberId: context.memberId, token: context.token }, activeVote.id);
+        const vote = await getVote({ memberId: context.memberId, token: context.token }, voteId);
 
         if (vote.resultMenu) {
           setFinalMenu(toCandidateCard(vote.resultMenu));
           setVoteSummaries((current) =>
             current.map((summary) =>
-              summary.voteId === activeVote.id ? { ...summary, status: getVoteStatusLabel(vote.status) } : summary,
+              summary.voteId === voteId ? { ...summary, status: getVoteStatusLabel(vote.status) } : summary,
             ),
           );
           setStep('final');
@@ -716,10 +785,11 @@ export function VoteFlowScreen({
           return;
         }
       } catch {
-        // The close error below is the actionable failure for the user.
+        // The first status lookup failure below is the actionable failure for the user.
       }
 
-      setApiMessage(`마감 API 호출 실패: ${getErrorMessage(closeError)}`);
+      setApiMessage(`투표 상태 조회 API 호출 실패: ${getErrorMessage(error)}`);
+      setStep('status');
       setIsLoading(false);
     }
   };
@@ -815,11 +885,20 @@ export function VoteFlowScreen({
         <VoteStatusView
           activeVote={activeVote}
           apiMessage={apiMessage}
+          checkedMemberIds={checkedStatusMemberIds}
+          hasSubmittedBallot={hasSubmittedActiveBallot}
           isLoading={isLoading}
           members={selectedMembers}
-          onBack={() => setStep('setup')}
+          onBack={() => setStep(hasSubmittedActiveBallot ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
-          onNext={() => setStep('oracle')}
+          onNext={() => {
+            if (hasSubmittedActiveBallot) {
+              setStep('list');
+              return;
+            }
+
+            setStep('oracle');
+          }}
           onNotify={() => void handleVoteReminder()}
         />
       );
@@ -1174,6 +1253,8 @@ function VoteSetupView({
 function VoteStatusView({
   activeVote,
   apiMessage,
+  checkedMemberIds,
+  hasSubmittedBallot,
   isLoading,
   members,
   onBack,
@@ -1183,6 +1264,8 @@ function VoteStatusView({
 }: {
   activeVote: ActiveVote | null;
   apiMessage: string | null;
+  checkedMemberIds: Set<number>;
+  hasSubmittedBallot: boolean;
   isLoading: boolean;
   members: VoteMember[];
   onBack: () => void;
@@ -1190,26 +1273,29 @@ function VoteStatusView({
   onCancel: () => void;
   onNext: () => void;
 }) {
+  const completedCount = members.filter((member) => checkedMemberIds.has(member.memberId)).length;
+  const progressWidth = members.length > 0 ? `${Math.min(100, (completedCount / members.length) * 100)}%` : '0%';
+
   return (
     <>
       <VoteNav title="그룹 컨디션" onBack={onBack} />
       <section className="vote-status-card">
         <div className="vote-status-head">
           <strong>🗳️ 투표 현황</strong>
-          <span>● 진행 중</span>
+          <span>{hasSubmittedBallot ? '● 내 투표 제출 완료' : '● 진행 중'}</span>
         </div>
         <div className="vote-progress-row">
           <div className="vote-progress-track">
-            <div style={{ width: members.length > 0 ? '100%' : '0%' }} />
+            <div style={{ width: progressWidth }} />
           </div>
           <small>
-            참여자 {members.length}명
+            선호 제출 {completedCount}/{members.length}명 · 메뉴 확정은 전원 투표 후
           </small>
         </div>
         <div className="vote-status-members">
           {members.map((member) => (
             <span key={member.memberId}>
-              <Avatar member={member} />
+              <Avatar member={member} checked={checkedMemberIds.has(member.memberId)} />
               <small>{member.name}</small>
             </span>
           ))}
@@ -1232,7 +1318,7 @@ function VoteStatusView({
 
       <div className="vote-bottom-actions">
         <button className="vote-primary-button" type="button" onClick={onNext}>
-          다음으로
+          {hasSubmittedBallot ? '투표 목록으로' : '다음으로'}
         </button>
       </div>
     </>

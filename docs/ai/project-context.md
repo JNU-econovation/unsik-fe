@@ -15,8 +15,8 @@ React and CSS.
 
 Backend integration is partial because the current Swagger contract does not
 cover every screen state. Kakao auth, groups, group members, vote creation,
-preference submission, recommendation, ballot submission, vote close/detail,
-vote deletion, and restaurant search call the backend. Room list fallback data,
+preference submission, recommendation, ballot submission, vote detail, vote
+deletion, and restaurant search call the backend. Room list fallback data,
 recommendation fallback data, restaurant fallback data, previous meal history,
 fake ratings, fake reviews, and fake score details are not shown. Screens with
 missing backend contracts render empty or API-required states instead.
@@ -140,19 +140,22 @@ The app has installable PWA basics:
 - `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines and
   allergy/restriction submission
 - `POST /api/votes/{voteId}/recommend?memberId=...`: candidate menus
-- `POST /api/votes/{voteId}/ballots?memberId=...`: like/dislike ballots
-- `POST /api/votes/{voteId}/close?memberId=...`: final menu close when possible
-- `GET /api/votes/{voteId}?memberId=...`: fallback final menu detail lookup
+- `POST /api/votes/{voteId}/ballots?memberId=...`: like/dislike ballots;
+  the backend automatically aggregates only after every participant submits
+- `GET /api/votes/{voteId}?memberId=...`: vote status/detail lookup after
+  ballot submission; final menu is shown only when the backend returns
+  `resultMenu`
+- `GET /api/votes/{voteId}/pending-members?memberId=...`: preference pending
+  members for status-screen profile check marks
 - `DELETE /api/votes/{voteId}?memberId=...`: vote cancellation/deletion
 - `GET /api/restaurants?menu=...&voteId=...&page=...`: restaurant search
 
 Available Vote endpoints not currently used:
 
+- `POST /api/votes/{voteId}/close?memberId=...`: Swagger marks this as OWNER
+  forced close, so the frontend does not call it from the normal ballot flow.
 - `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the
   group-scoped `GET /api/groups/{groupId}/votes?memberId=...` endpoint.
-- `GET /api/votes/{voteId}/pending-members?memberId=...`: backend support
-  exists, but the frontend does not yet render a pending-preference member UI.
-
 Known contract gaps:
 
 - No group update endpoint exists, so room rename was removed. Icon and max
@@ -168,6 +171,10 @@ Known contract gaps:
   cuisine in `dislikedCuisines`.
 - Swagger recommendation candidates are rendered as returned. The frontend no
   longer fills missing visual slots with local candidate data.
+- No ballot progress/count endpoint exists. After a member submits
+  `POST /api/votes/{voteId}/ballots`, the frontend can mark the current
+  browser's member as submitted locally, but it still waits for
+  `GET /api/votes/{voteId}` to return `resultMenu` instead of forcing a close.
 - Restaurant search returns Kakao Local documents but not rating, price, or
   reviews. Those fields are not rendered.
 - No menu score/reason endpoint exists. The menu detail screen shows only the

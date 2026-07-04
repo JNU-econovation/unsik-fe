@@ -228,6 +228,17 @@ export async function listGroupMembers(
   return asArray(value).map(parseGroupMemberResponse);
 }
 
+export async function listPendingPreferenceMembers(
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  voteId: number,
+) {
+  const value = await requestBackend(`/api/votes/${voteId}/pending-members?memberId=${context.memberId}`, {
+    token: context.token,
+  });
+
+  return asArray(value).map(parseGroupMemberResponse);
+}
+
 export async function listMenus() {
   const value = await requestBackend('/api/menus');
 
