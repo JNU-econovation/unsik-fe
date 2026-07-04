@@ -84,6 +84,14 @@ export function saveAuthSession(session: AuthSession): void {
   }
 }
 
+export function clearAuthSession(): void {
+  try {
+    window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore unavailable storage during auth cleanup.
+  }
+}
+
 export function loadAuthSession(): AuthSession | null {
   try {
     const rawSession = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
@@ -94,11 +102,7 @@ export function loadAuthSession(): AuthSession | null {
 
     return parseAuthSession(JSON.parse(rawSession));
   } catch {
-    try {
-      window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-    } catch {
-      // Ignore unavailable storage during app bootstrap.
-    }
+    clearAuthSession();
 
     return null;
   }

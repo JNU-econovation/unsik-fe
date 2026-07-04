@@ -108,6 +108,8 @@ type RequestOptions = {
   token?: string;
 };
 
+export const AUTH_EXPIRED_EVENT = 'unsik:auth-expired';
+
 export function createApiUrl(path: `/${string}`, params?: Record<string, string | number | undefined>): string {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
   const url = new URL(`${baseUrl}${path}`, window.location.origin);
@@ -141,6 +143,10 @@ export async function requestBackend(path: `/${string}`, options: RequestOptions
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
+
     throw new Error(await readBackendError(response));
   }
 
