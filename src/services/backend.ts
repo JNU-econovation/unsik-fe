@@ -68,6 +68,16 @@ export type VoteResponse = {
   relaxedCuisines: Cuisine[];
 };
 
+export type VoteSummaryResponse = {
+  voteId: number;
+  title: string;
+  status: VoteStatus;
+  school: School;
+  deadline: string;
+  participantCount: number;
+  resultMenu: CandidateMenuResponse | null;
+};
+
 export type VoteDetailResponse = {
   voteId: number;
   title: string;
@@ -222,6 +232,17 @@ export async function listMenus() {
   const value = await requestBackend('/api/menus');
 
   return asArray(value).map(parseMenuResponse);
+}
+
+export async function listGroupVotes(
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  groupId: number,
+) {
+  const value = await requestBackend(`/api/groups/${groupId}/votes?memberId=${context.memberId}`, {
+    token: context.token,
+  });
+
+  return asArray(value).map(parseVoteSummaryResponse);
 }
 
 export async function createVote(
@@ -397,6 +418,20 @@ function parseVoteResponse(value: unknown): VoteResponse {
     relaxed: Boolean(record.relaxed),
     impossible: Boolean(record.impossible),
     relaxedCuisines: asArray(record.relaxedCuisines).map(parseCuisine),
+  };
+}
+
+function parseVoteSummaryResponse(value: unknown): VoteSummaryResponse {
+  const record = asRecord(value);
+
+  return {
+    voteId: readNumber(record.voteId),
+    title: readString(record.title, '오늘의 투표'),
+    status: parseVoteStatus(record.status),
+    school: parseSchool(record.school),
+    deadline: readString(record.deadline, ''),
+    participantCount: readNumber(record.participantCount, 0),
+    resultMenu: record.resultMenu ? parseCandidateMenuResponse(record.resultMenu) : null,
   };
 }
 
