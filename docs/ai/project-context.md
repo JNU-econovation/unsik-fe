@@ -90,6 +90,14 @@ The frontend stores that response in `localStorage` under
 `unsik:auth_session` so the current minimal app can display member context and
 reuse the token for future API calls.
 
+## Invite Links
+
+Room invite links use `/grouplist?code=:inviteCode`. The room list screen reads
+that code, stores it temporarily in `localStorage` under
+`unsik:pending_invite_code` if the user is not logged in, then calls
+`POST /api/groups/join?memberId=...` once a member session is available. After a
+successful join, it opens `/groups/:groupId/votes`.
+
 ## Backend API Usage
 
 `src/services/backend.ts` targets the Railway Swagger API. Current call sites:
