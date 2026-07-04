@@ -1,5 +1,5 @@
 import type { CSSProperties, FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BackendContext, GroupResponse } from '@/services/backend';
 import { createGroup, deleteGroup, joinGroup, listGroupMembers, listGroups } from '@/services/backend';
@@ -59,6 +59,9 @@ const STARS = [
   { left: 348, top: 610, label: '✦', size: 11, opacity: 0.15 },
 ] as const;
 
+const INVITE_CODE_SEARCH_PARAM = 'code';
+const PENDING_INVITE_CODE_STORAGE_KEY = 'unsik:pending_invite_code';
+
 function getRoomTone(index: number): RoomTone {
   if (index === 0) {
     return 'featured';
@@ -73,6 +76,59 @@ function getRoomTone(index: number): RoomTone {
 
 function createRoomLink(code: string) {
   return `${window.location.origin}/grouplist?code=${encodeURIComponent(code)}`;
+}
+
+function readInviteCodeFromLocation(): string | null {
+  const inviteCode = new URLSearchParams(window.location.search).get(INVITE_CODE_SEARCH_PARAM)?.trim();
+
+  return inviteCode || null;
+}
+
+function readStoredInviteCode(): string | null {
+  try {
+    return window.localStorage.getItem(PENDING_INVITE_CODE_STORAGE_KEY)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function storePendingInviteCode(inviteCode: string) {
+  try {
+    window.localStorage.setItem(PENDING_INVITE_CODE_STORAGE_KEY, inviteCode);
+  } catch {
+    // The URL still carries the invite code, so storage failure is non-fatal.
+  }
+}
+
+function clearPendingInviteCode() {
+  try {
+    window.localStorage.removeItem(PENDING_INVITE_CODE_STORAGE_KEY);
+  } catch {
+    // Nothing to recover here.
+  }
+}
+
+function clearInviteCodeFromLocation() {
+  const url = new URL(window.location.href);
+
+  if (!url.searchParams.has(INVITE_CODE_SEARCH_PARAM)) {
+    return;
+  }
+
+  url.searchParams.delete(INVITE_CODE_SEARCH_PARAM);
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function readInitialInviteCode(): string | null {
+  return readInviteCodeFromLocation() ?? readStoredInviteCode();
+}
+
+async function copyRoomLink(room: Room) {
+  const link = createRoomLink(room.code);
+
+  await navigator.clipboard.writeText(link);
+
+  return link;
 }
 
 async function groupToRoom(
@@ -144,10 +200,26 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(Boolean(memberId));
+  const [hasLoadedRooms, setHasLoadedRooms] = useState(false);
+  const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readInitialInviteCode());
+  const [isJoiningInvite, setIsJoiningInvite] = useState(false);
   const [roomSourceLabel, setRoomSourceLabel] = useState('백엔드 API');
   const [roomListError, setRoomListError] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const pendingInviteNoticeRef = useRef<string | null>(null);
+  const handledInviteCodeRef = useRef<string | null>(null);
+
+  const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+
+    setToast(message);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+    }, 2200);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -162,11 +234,13 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
       setRooms([]);
       setRoomSourceLabel('로그인 필요');
       setRoomListError(null);
+      setHasLoadedRooms(false);
       return undefined;
     }
 
     let isCurrent = true;
     setIsLoadingRooms(true);
+    setHasLoadedRooms(false);
     setRoomListError(null);
 
     listGroups({ memberId, token })
@@ -185,6 +259,7 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
 
         setRooms(nextRooms);
         setRoomSourceLabel('백엔드 API');
+        setRoomListError(null);
       })
       .catch((error: unknown) => {
         if (!isCurrent) {
@@ -199,13 +274,110 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
       .finally(() => {
         if (isCurrent) {
           setIsLoadingRooms(false);
+          setHasLoadedRooms(true);
         }
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [memberId, token]);
+  }, [memberId, showToast, token]);
+
+  useEffect(() => {
+    const inviteCode = readInviteCodeFromLocation();
+
+    if (!inviteCode) {
+      return;
+    }
+
+    storePendingInviteCode(inviteCode);
+    setPendingInviteCode(inviteCode);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingInviteCode) {
+      return undefined;
+    }
+
+    if (!memberId) {
+      storePendingInviteCode(pendingInviteCode);
+
+      if (pendingInviteNoticeRef.current !== pendingInviteCode) {
+        pendingInviteNoticeRef.current = pendingInviteCode;
+        showToast('카카오 로그인 후 초대 링크로 참여할 수 있어요');
+      }
+
+      return undefined;
+    }
+
+    if (!hasLoadedRooms || isJoiningInvite) {
+      return undefined;
+    }
+
+    const existingRoom = rooms.find((room) => room.code === pendingInviteCode);
+
+    if (existingRoom) {
+      handledInviteCodeRef.current = pendingInviteCode;
+      clearPendingInviteCode();
+      clearInviteCodeFromLocation();
+      setPendingInviteCode(null);
+      showToast(`${existingRoom.name} 방으로 이동해요`);
+      onOpenRoom(existingRoom.id);
+      return undefined;
+    }
+
+    if (handledInviteCodeRef.current === pendingInviteCode) {
+      return undefined;
+    }
+
+    let isCurrent = true;
+    handledInviteCodeRef.current = pendingInviteCode;
+    setIsJoiningInvite(true);
+
+    joinGroup({ memberId, token }, pendingInviteCode)
+      .then(async (group) => {
+        const room = await groupToRoom(group, { memberId, token });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setRooms((currentRooms) => {
+          if (currentRooms.some((currentRoom) => currentRoom.id === room.id)) {
+            return currentRooms;
+          }
+
+          return [room, ...currentRooms];
+        });
+        setRoomSourceLabel('백엔드 API');
+        setRoomListError(null);
+        clearPendingInviteCode();
+        clearInviteCodeFromLocation();
+        setPendingInviteCode(null);
+        showToast(`${room.name} 방에 참여했어요`);
+        onOpenRoom(room.id);
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        handledInviteCodeRef.current = null;
+        clearPendingInviteCode();
+        clearInviteCodeFromLocation();
+        setPendingInviteCode(null);
+        showToast(`초대 링크 참여에 실패했어요: ${getErrorMessage(error)}`);
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsJoiningInvite(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [hasLoadedRooms, isJoiningInvite, memberId, onOpenRoom, pendingInviteCode, rooms, showToast, token]);
 
   useEffect(() => {
     if (!openMenuId) {
@@ -241,17 +413,6 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [openMenuId]);
-
-  const showToast = (message: string) => {
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-
-    setToast(message);
-    toastTimerRef.current = window.setTimeout(() => {
-      setToast(null);
-    }, 2200);
-  };
 
   const closeDialog = () => {
     setDialog(null);
@@ -339,12 +500,12 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
     setOpenMenuId(null);
 
     if (action === 'copy') {
-      const link = createRoomLink(room.code);
-
       try {
-        await navigator.clipboard.writeText(link);
+        await copyRoomLink(room);
         showToast('초대 링크를 복사했어요');
       } catch {
+        const link = createRoomLink(room.code);
+
         showToast(`복사할 링크: ${link}`);
       }
 
