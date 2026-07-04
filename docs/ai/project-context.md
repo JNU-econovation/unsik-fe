@@ -134,6 +134,8 @@ The app has installable PWA basics:
 - `DELETE /api/groups/{groupId}?memberId=...`: group deletion
 - `GET /api/groups/{groupId}/members?memberId=...`: vote setup participants
 - `GET /api/menus`: searchable menu catalog on the preference screen
+- `GET /api/groups/{groupId}/votes?memberId=...`: group-scoped vote summary
+  list
 - `POST /api/groups/{groupId}/votes`: vote creation
 - `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines and
   allergy/restriction submission
@@ -144,11 +146,15 @@ The app has installable PWA basics:
 - `DELETE /api/votes/{voteId}?memberId=...`: vote cancellation/deletion
 - `GET /api/restaurants?menu=...&voteId=...&page=...`: restaurant search
 
+Available Vote endpoints not currently used:
+
+- `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the
+  group-scoped `GET /api/groups/{groupId}/votes?memberId=...` endpoint.
+- `GET /api/votes/{voteId}/pending-members?memberId=...`: backend support
+  exists, but the frontend does not yet render a pending-preference member UI.
+
 Known contract gaps:
 
-- No group vote-list endpoint exists, so `/groups/:groupId/votes` cannot load
-  persisted vote rows from the backend. The screen only shows votes created
-  during the current React session.
 - No group update endpoint exists, so room rename was removed. Icon and max
   member selections are currently stored only in the group description text.
 - No location-vote endpoint exists. The selected location is sent only through

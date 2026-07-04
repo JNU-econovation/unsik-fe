@@ -481,7 +481,7 @@
               <span>주요 라우트: 메인, 카카오 콜백, 방 목록, 그룹 투표</span>
             </div>
             <div class="panel metric">
-              <strong>15개</strong>
+              <strong>16개</strong>
               <span>현재 프론트에서 호출하는 백엔드 API 범위</span>
             </div>
             <div class="panel metric">
@@ -571,7 +571,7 @@
             <div class="panel">
               <h3>목데이터 정책</h3>
               <p>
-                실제 DB 기반으로 조회할 수 있는 영역은 API만 사용합니다. API가 없는 투표 목록 영구 조회, 이전 식사 기록,
+                실제 DB 기반으로 조회할 수 있는 영역은 API만 사용합니다. API가 없는 이전 식사 기록,
                 평점, 리뷰, 점수 설명은 프론트에서 가짜로 만들지 않습니다.
               </p>
             </div>
@@ -714,6 +714,12 @@
                   <td>투표 제목, 마감 시간, 학교 코드, 참여자 ID를 보내 투표를 만듭니다.</td>
                 </tr>
                 <tr>
+                  <td><code>GET /api/groups/{groupId}/votes</code></td>
+                  <td><code>listGroupVotes</code></td>
+                  <td>투표 목록</td>
+                  <td>현재 그룹에 속한 투표 요약 목록을 불러옵니다.</td>
+                </tr>
+                <tr>
                   <td><code>POST /api/votes/{voteId}/preferences</code></td>
                   <td><code>submitPreference</code></td>
                   <td>오늘의 취향 제출</td>
@@ -747,7 +753,7 @@
                   <td><code>DELETE /api/votes/{voteId}</code></td>
                   <td><code>deleteVote</code></td>
                   <td>투표 취소</td>
-                  <td>진행 중인 투표를 취소하고 현재 세션의 투표 목록에서 제거합니다.</td>
+                  <td>진행 중인 투표를 취소하고 화면의 투표 목록에서 제거합니다.</td>
                 </tr>
                 <tr>
                   <td><code>GET /api/restaurants</code></td>
@@ -799,7 +805,7 @@
             <div class="panel">
               <h3>없는 데이터는 없는 대로 표시</h3>
               <p>
-                평점, 리뷰, 이전 식사 기록, 그룹별 투표 목록처럼 API가 없는 정보는 가짜 데이터를 만들지 않고
+                평점, 리뷰, 이전 식사 기록처럼 API가 없는 정보는 가짜 데이터를 만들지 않고
                 명확한 빈 상태나 백엔드 필요 안내로 처리했습니다.
               </p>
             </div>
@@ -871,7 +877,7 @@
               <h3>목데이터 제거 기준</h3>
               <p>
                 DB에 있는 정보는 API 응답만 신뢰하고, 없는 정보는 프론트에서 억지로 저장하지 않았습니다.
-                그래서 그룹별 투표 목록처럼 API가 없는 부분은 명확히 백엔드 계약 필요 상태로 남겼습니다.
+                투표 목록도 <code>GET /api/groups/{groupId}/votes</code> 응답으로 채우고 localStorage에 따로 복제하지 않습니다.
               </p>
             </div>
             <div class="panel">
@@ -909,12 +915,12 @@
                   <td><code>src/services/backend.ts</code>, <code>listGroups</code>, <code>createVote</code>, <code>recommendMenus</code></td>
                 </tr>
                 <tr>
-                  <td>왜 그룹별 투표 목록을 localStorage에 저장하지 않았나요?</td>
+                  <td>왜 투표 목록을 localStorage에 저장하지 않았나요?</td>
                   <td>
                     투표는 DB 기준 데이터라서 프론트 임시 저장으로 맞춘 것처럼 보이면 실제 데이터와 어긋날 수 있습니다.
-                    현재 Swagger에 조회 API가 없기 때문에 백엔드 계약으로 해결해야 한다고 판단했습니다.
+                    현재는 <code>GET /api/groups/{groupId}/votes</code> 응답으로 현재 그룹의 투표 요약을 조회합니다.
                   </td>
-                  <td><code>GET /api/groups/{groupId}/votes</code> 필요 항목</td>
+                  <td><code>listGroupVotes</code>, <code>VoteSummaryResponse</code></td>
                 </tr>
                 <tr>
                   <td>TypeScript를 어떻게 유지보수에 활용했나요?</td>
@@ -938,7 +944,7 @@
                     평점, 리뷰, 이전 식사 기록, 점수 설명처럼 API에 없는 데이터는 프론트에서 꾸며내지 않았습니다.
                     대신 빈 상태나 “API 필요” 메시지로 처리해 실제 데이터 신뢰도를 지켰습니다.
                   </td>
-                  <td>식당 상세, 점수 상세, 이전 기록, 그룹별 투표 목록</td>
+                  <td>식당 상세, 점수 상세, 이전 기록</td>
                 </tr>
                 <tr>
                   <td>호불호 투표 충돌은 어떻게 줄였나요?</td>
@@ -986,11 +992,6 @@
               </thead>
               <tbody>
                 <tr>
-                  <td><code>GET /api/groups/{groupId}/votes</code></td>
-                  <td>방에 다시 들어왔을 때 DB에 저장된 투표 목록을 불러와야 합니다.</td>
-                  <td>현재 세션에서 만든 투표만 화면 상태로 보여주고, 새로고침 후 영구 목록은 불러오지 않습니다.</td>
-                </tr>
-                <tr>
                   <td>투표 단계별 제출 상태</td>
                   <td>누가 선호를 냈는지, 누가 호불호 투표를 했는지 정확히 보여줘야 합니다.</td>
                   <td>현재는 선택된 참여자 수와 진행 중 상태만 보여주고, 단계별 미제출자는 표시하지 않습니다.</td>
@@ -1019,6 +1020,30 @@
                   <td>푸시 알림 구독/전송 API</td>
                   <td>투표 알림을 실제 사용자 기기로 보내려면 서비스 워커 push subscription과 백엔드 발송이 필요합니다.</td>
                   <td>현재는 브라우저 Notification API로 즉시 로컬 알림만 시도합니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-wrap" style="margin-top: 0.85rem">
+            <table>
+              <thead>
+                <tr>
+                  <th>현재 쓰지 않는 Vote API</th>
+                  <th>이유</th>
+                  <th>현재 대체 흐름</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>GET /api/votes/my</code></td>
+                  <td>투표 목록을 로그인 회원 전체 기준이 아니라 현재 그룹 기준으로 보여줘야 합니다.</td>
+                  <td><code>GET /api/groups/{groupId}/votes</code>로 그룹 투표 목록을 조회합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>GET /api/votes/{voteId}/pending-members</code></td>
+                  <td>선호 미제출 참여자를 따로 보여주는 UI가 아직 없습니다.</td>
+                  <td>현재는 투표 상태와 선택된 참여자 수만 보여줍니다.</td>
                 </tr>
               </tbody>
             </table>
