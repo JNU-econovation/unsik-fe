@@ -38,12 +38,11 @@
 ## Git
 
 - Use `[type]: summary` for commit messages.
-- Keep the summary concise and specific. Korean or English summaries are both
-  acceptable.
+- Write the summary in Korean. Keep it concise and specific.
 - Prefer these types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`,
   `chore`, `build`, `ci`, `perf`, and `revert`.
-- Examples: `[feat]: add menu recommendation flow`,
-  `[docs]: document commit message rules`.
+- Examples: `[feat]: 초대 링크 자동 참여 처리`,
+  `[docs]: 커밋 메시지 규칙 정리`.
 
 ## Verification
 

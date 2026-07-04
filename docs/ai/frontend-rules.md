@@ -230,9 +230,10 @@ Windows PowerShell에서는 `npm` 대신 `npm.cmd`를 우선 사용한다.
 ## 13. 커밋 메시지
 
 - 커밋 메시지는 `[type]: summary` 형식을 사용한다.
-- 예: `[feat]: add recommendation result screen`
-- 예: `[docs]: update frontend study guide`
-- 예: `[fix]: prevent landing button text overflow`
+- summary는 한글로 간결하고 구체적으로 작성한다.
+- 예: `[feat]: 초대 링크 자동 참여 처리`
+- 예: `[docs]: 커밋 메시지 규칙 정리`
+- 예: `[fix]: 랜딩 버튼 텍스트 넘침 방지`
 
 자주 쓰는 type:
 
