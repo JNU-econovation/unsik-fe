@@ -11,6 +11,7 @@ import type {
   Restriction,
   School,
   VoteDetailResponse,
+  VoteSummaryResponse,
 } from '@/services/backend';
 import {
   closeVote,
@@ -18,6 +19,7 @@ import {
   deleteVote,
   getVote,
   listGroupMembers,
+  listGroupVotes,
   listMenus,
   recommendMenus,
   searchRestaurants,
@@ -193,6 +195,8 @@ export function VoteFlowScreen({
   const [restaurants, setRestaurants] = useState<RestaurantDocument[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantDocument | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingVoteSummaries, setIsLoadingVoteSummaries] = useState(Boolean(memberId && hasBackendGroup));
+  const [voteListMessage, setVoteListMessage] = useState<string | null>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -253,6 +257,53 @@ export function VoteFlowScreen({
           setMembers([]);
           setSelectedMemberIds(new Set());
           setApiMessage(`그룹원 API 호출 실패: ${getErrorMessage(error)}`);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [hasBackendGroup, memberId, numericGroupId, token]);
+
+  useEffect(() => {
+    if (!memberId) {
+      setVoteSummaries([]);
+      setVoteListMessage('로그인 후 그룹 투표 목록을 볼 수 있어요.');
+      setIsLoadingVoteSummaries(false);
+      return undefined;
+    }
+
+    if (!hasBackendGroup) {
+      setVoteSummaries([]);
+      setVoteListMessage('유효한 그룹 id가 없어 투표 목록을 불러올 수 없어요.');
+      setIsLoadingVoteSummaries(false);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setIsLoadingVoteSummaries(true);
+    setVoteListMessage(null);
+
+    listGroupVotes({ memberId, token }, numericGroupId)
+      .then((votes) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setVoteSummaries(votes.map(toVoteSummaryFromResponse));
+        setVoteListMessage(votes.length > 0 ? null : '아직 이 그룹에 투표가 없어요.');
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setVoteSummaries([]);
+        setVoteListMessage(`그룹 투표 목록 API 호출 실패: ${getErrorMessage(error)}`);
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoadingVoteSummaries(false);
         }
       });
 
@@ -732,6 +783,8 @@ export function VoteFlowScreen({
           onBack={onBackToRooms}
           onCreate={() => resetForNewVote('오늘 점심')}
           onSelectVote={handleSelectVote}
+          isLoading={isLoadingVoteSummaries}
+          message={voteListMessage}
           votes={voteSummaries}
         />
       );
@@ -946,6 +999,8 @@ function VoteListView({
   groupId,
   memberName,
   votes,
+  isLoading,
+  message,
   onBack,
   onCreate,
   onSelectVote,
@@ -953,10 +1008,19 @@ function VoteListView({
   groupId: string;
   memberName?: string;
   votes: VoteSummary[];
+  isLoading: boolean;
+  message: string | null;
   onBack: () => void;
   onCreate: () => void;
   onSelectVote: (vote: VoteSummary) => void;
 }) {
+  const hasLoadError = Boolean(message?.includes('실패'));
+  const emptyTitle = isLoading
+    ? '투표 목록을 불러오는 중입니다'
+    : hasLoadError
+      ? '투표 목록을 불러오지 못했어요'
+      : '그룹 투표 목록이 비어 있어요';
+
   return (
     <>
       <VoteNav title="투표 리스트" onBack={onBack} />
@@ -981,13 +1045,13 @@ function VoteListView({
         </div>
       ) : (
         <div className="vote-empty-panel">
-          <strong>방의 투표 목록을 조회할 수 없어요</strong>
-          <p>현재 백엔드에 그룹별 투표 목록 조회 API가 없어 이 화면에서 새로 만든 투표만 임시로 보입니다.</p>
+          <strong>{emptyTitle}</strong>
+          <p>{isLoading ? '백엔드에서 이 그룹의 투표를 조회하고 있어요.' : message ?? '새 투표를 만들어 메뉴를 정해보세요.'}</p>
         </div>
       )}
 
       <div className="vote-api-note">
-        새 투표 생성부터는 백엔드 API를 호출합니다.
+        현재 그룹에 속한 투표를 백엔드에서 불러옵니다.
       </div>
 
       <div className="vote-bottom-actions">
@@ -1845,6 +1909,21 @@ function toCandidateCard(menu: CandidateMenuResponse): CandidateCard {
     ...menu,
     icon: getCuisineIcon(menu.cuisine),
     description: `${getCuisineLabel(menu.cuisine)} 계열의 오늘 후보`,
+  };
+}
+
+function toVoteSummaryFromResponse(vote: VoteSummaryResponse): VoteSummary {
+  const placeLabel = getSchoolLabel(vote.school);
+
+  return {
+    id: String(vote.voteId),
+    voteId: vote.voteId,
+    title: vote.title,
+    status: getVoteStatusLabel(vote.status),
+    meta: `${placeLabel} · 참여자 ${vote.participantCount}명`,
+    placeLabel,
+    school: vote.school,
+    participantIds: [],
   };
 }
 
