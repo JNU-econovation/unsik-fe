@@ -660,9 +660,10 @@
               <div class="callout">
                 <strong>중요한 상태:</strong>
                 카카오 로그인 플로우는 백엔드와 연결되어 있습니다. 프론트는 Kakao 인증 URL을 만들고,
-                콜백에서 받은 <code>code</code>를 <code>VITE_API_BASE_URL</code>의
-                <code>POST /api/auth/kakao</code>로 보냅니다. 응답으로 받은 토큰과 회원 정보는
-                <code>localStorage</code>의 <code>unsik:auth_session</code>에 저장합니다.
+                콜백에서 받은 <code>code</code>와 로그인 URL에 사용한 <code>redirectUri</code>를
+                <code>VITE_API_BASE_URL</code>의 <code>POST /api/auth/kakao</code>로 보냅니다.
+                응답으로 받은 토큰과 회원 정보는 <code>localStorage</code>의
+                <code>unsik:auth_session</code>에 저장합니다.
               </div>
 
               <h3>그룹 목록 화면의 구성</h3>
@@ -945,7 +946,7 @@
   const [route, setRoute] = useState&lt;AppRoute&gt;(() =&gt; getAppRoute(window.location.pathname));
 
   if (route.type === 'groups') {
-    return &lt;RoomListScreen onBack={() =&gt; navigate({ type: 'main' })} /&gt;;
+    return &lt;RoomListScreen onOpenRoom={(roomId) =&gt; navigate({ type: 'groupVotes', groupId: roomId })} /&gt;;
   }
 
   if (route.type === 'groupVotes') {
@@ -1119,7 +1120,7 @@
 
           <h3>현재 연결된 주요 API</h3>
           <ol>
-            <li><code>POST /api/auth/kakao</code>: 카카오 code를 토큰과 회원 정보로 교환합니다.</li>
+            <li><code>POST /api/auth/kakao</code>: 카카오 code와 redirectUri를 토큰과 회원 정보로 교환합니다.</li>
             <li><code>GET/POST/DELETE /api/groups</code>: 방 목록, 방 만들기, 방 삭제를 처리합니다.</li>
             <li><code>POST /api/groups/join</code>: 초대코드나 초대 링크로 그룹에 참여합니다.</li>
             <li><code>GET /api/groups/{groupId}/members</code>: 방 인원 수와 투표 참여자 후보를 가져옵니다.</li>

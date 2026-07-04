@@ -88,12 +88,19 @@ Current placeholder variables:
 
 Kakao login starts from the main screen using Kakao's OAuth authorization URL.
 The callback route reads the returned `code`, verifies the OAuth `state`, then
-POSTs `{ "code": string }` to `POST /api/auth/kakao`. The expected response is
-`{ "token": string, "member": { "id": number, "name": string } }`.
+POSTs `{ "code": string, "redirectUri": string }` to `POST /api/auth/kakao`.
+The `redirectUri` value is the same URI used to create the Kakao authorization
+URL. The expected response is `{ "token": string, "member": { "id": number,
+"name": string } }`.
 
 The frontend stores that response in `localStorage` under
 `unsik:auth_session` so the current minimal app can display member context and
 reuse the token for future API calls.
+
+When a backend API call returns `401`, `src/services/backend.ts` dispatches the
+`unsik:auth-expired` browser event. `src/App.tsx` handles that event by clearing
+`unsik:auth_session`, returning to `/main`, and asking the user to log in again.
+Token lifetime is still controlled by the backend JWT.
 
 ## Invite Links
 
