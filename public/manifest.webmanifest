@@ -1,0 +1,35 @@
+{
+  "id": "/",
+  "name": "\uc6b4\uc2dd",
+  "short_name": "\uc6b4\uc2dd",
+  "description": "\uce5c\uad6c\ub4e4\uacfc \uc624\ub298\uc758 \uba54\ub274\ub97c \uc815\ud558\ub294 \uc6b4\uc2dd \uc571",
+  "lang": "ko",
+  "start_url": "/main",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#07071a",
+  "theme_color": "#12103a",
+  "categories": ["food", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

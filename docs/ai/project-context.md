@@ -32,6 +32,8 @@ missing backend contracts render empty or API-required states instead.
 ## Structure
 
 - `src/main.tsx`: React DOM entry
+- `src/pwa.ts`: production-only service worker registration for installable PWA
+  support
 - `src/App.tsx`: top-level app composition and lightweight URL routing for
   `/main`, `/auth/kakao/callback`, `/grouplist`, and
   `/groups/:groupId/votes`
@@ -45,7 +47,8 @@ missing backend contracts render empty or API-required states instead.
   result, restaurant detail, and score detail screens
 - `src/components`: reusable UI components as the app grows
 - `assets`: source assets imported by React
-- `public`: browser-served assets such as favicons and future PWA icons
+- `public`: browser-served assets such as favicons, PWA icons,
+  `manifest.webmanifest`, and `service-worker.js`
 - `docs/ai`: durable AI context and rules
 - `docs/frontend-study-guide.html`: dark-mode frontend study guide for humans
 
@@ -97,6 +100,20 @@ that code, stores it temporarily in `localStorage` under
 `unsik:pending_invite_code` if the user is not logged in, then calls
 `POST /api/groups/join?memberId=...` once a member session is available. After a
 successful join, it opens `/groups/:groupId/votes`.
+
+## PWA
+
+The app has installable PWA basics:
+
+- `index.html` links `/manifest.webmanifest`.
+- `public/manifest.webmanifest` defines the app name, start URL `/main`,
+  standalone display mode, theme/background colors, and icon set.
+- `public/icons/*` contains 192px, 512px, and maskable 512px install icons
+  derived from `public/app-icon.png`.
+- `public/service-worker.js` caches the app shell and same-origin static assets.
+  It ignores non-GET requests, cross-origin requests, and `/api/*` calls.
+- `src/pwa.ts` registers the service worker only in production builds to avoid
+  development-server cache issues.
 
 ## Backend API Usage
 
