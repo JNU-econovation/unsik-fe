@@ -57,6 +57,7 @@ export function App() {
   const [route, setRoute] = useState<AppRoute>(() => getAppRoute(window.location.pathname));
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => loadAuthSession());
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const normalizedRoute = getAppRoute(window.location.pathname);
@@ -120,6 +121,21 @@ export function App() {
     setRoute({ type: 'groups' });
   }, []);
 
+  const handleLogout = useCallback(async () => {
+    if (!authSession || isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    setLoginError(null);
+
+    clearAuthSession();
+    setAuthSession(null);
+    setIsLoggingOut(false);
+    window.history.replaceState(null, '', '/main');
+    setRoute({ type: 'main' });
+  }, [authSession, isLoggingOut]);
+
   if (route.type === 'authCallback') {
     return (
       <KakaoCallbackScreen
@@ -134,6 +150,8 @@ export function App() {
       <RoomListScreen
         memberId={authSession?.member.id}
         memberName={authSession?.member.name}
+        isLoggingOut={isLoggingOut}
+        onLogout={() => void handleLogout()}
         onOpenRoom={(roomId) => navigate({ type: 'groupVotes', groupId: roomId })}
         token={authSession?.token}
       />

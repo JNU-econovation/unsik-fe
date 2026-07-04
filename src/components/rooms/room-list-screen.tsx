@@ -7,8 +7,10 @@ import { createGroup, deleteGroup, joinGroup, listGroupMembers, listGroups } fro
 import './room-list-screen.css';
 
 type RoomListScreenProps = {
+  isLoggingOut?: boolean;
   memberId?: number;
   memberName?: string;
+  onLogout: () => void;
   onOpenRoom: (roomId: string) => void;
   token?: string;
 };
@@ -174,7 +176,7 @@ function getErrorMessage(error: unknown): string {
   return '알 수 없는 오류가 발생했어요.';
 }
 
-export function RoomListScreen({ memberId, memberName, onOpenRoom, token }: RoomListScreenProps) {
+export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onLogout, onOpenRoom, token }: RoomListScreenProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -502,7 +504,15 @@ export function RoomListScreen({ memberId, memberName, onOpenRoom, token }: Room
         <nav className="room-list-nav" aria-label="방 목록 탐색">
           <span aria-hidden="true" />
           <p className="room-list-nav-title">방 목록</p>
-          <span aria-hidden="true" />
+          <button
+            className="room-logout-button"
+            type="button"
+            disabled={!memberId || isLoggingOut}
+            onClick={onLogout}
+            aria-label="로그아웃"
+          >
+            {isLoggingOut ? '처리 중' : '로그아웃'}
+          </button>
         </nav>
 
         <header className="room-list-header">

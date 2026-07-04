@@ -321,18 +321,6 @@ export async function submitBallot(
   });
 }
 
-export async function closeVote(
-  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
-  voteId: number,
-) {
-  const value = await requestBackend(`/api/votes/${voteId}/close?memberId=${context.memberId}`, {
-    method: 'POST',
-    token: context.token,
-  });
-
-  return parseCandidateMenuResponse(value);
-}
-
 export async function getVote(
   context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
   voteId: number,

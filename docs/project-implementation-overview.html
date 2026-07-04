@@ -672,6 +672,12 @@
                   <td>카카오 OAuth code와 같은 로그인 요청에 사용한 redirectUri를 백엔드 세션 토큰과 회원 정보로 교환합니다.</td>
                 </tr>
                 <tr>
+                  <td>로컬 로그아웃</td>
+                  <td><code>clearAuthSession</code></td>
+                  <td>방 목록</td>
+                  <td>현재 기기의 <code>unsik:auth_session</code>만 삭제하고 메인 화면으로 돌아갑니다.</td>
+                </tr>
+                <tr>
                   <td><code>GET /api/groups</code></td>
                   <td><code>listGroups</code></td>
                   <td>방 목록</td>
@@ -744,10 +750,10 @@
                   <td>집계 후 결과 메뉴가 이미 생겼는지 확인합니다.</td>
                 </tr>
                 <tr>
-                  <td><code>POST /api/votes/{voteId}/close</code></td>
-                  <td><code>closeVote</code></td>
-                  <td>최종 확정</td>
-                  <td>필요할 때 방장 기준으로 투표를 마감하고 최종 메뉴를 받습니다.</td>
+                  <td><code>GET /api/votes/{voteId}/pending-members</code></td>
+                  <td><code>listPendingPreferenceMembers</code></td>
+                  <td>투표 현황</td>
+                  <td>선호 미제출자를 조회해서 현황 카드의 프로필 체크 표시를 채웁니다.</td>
                 </tr>
                 <tr>
                   <td><code>DELETE /api/votes/{voteId}</code></td>
@@ -950,9 +956,9 @@
                   <td>호불호 투표 충돌은 어떻게 줄였나요?</td>
                   <td>
                     후보 카드 클릭 시마다 바로 ballot을 보내지 않고, 최종 확정 버튼에서 한 번 제출하도록 했습니다.
-                    이후 <code>GET /api/votes/{voteId}</code>로 결과가 이미 생겼는지 확인하고 필요한 경우에만 close를 호출합니다.
+                    이후 <code>GET /api/votes/{voteId}</code>로 결과가 이미 생겼는지 확인하고, 백엔드가 <code>resultMenu</code>를 내려줄 때만 최종 화면으로 이동합니다.
                   </td>
-                  <td><code>submitBallot</code>, <code>getVote</code>, <code>closeVote</code></td>
+                  <td><code>submitBallot</code>, <code>getVote</code></td>
                 </tr>
                 <tr>
                   <td>왜 React Router를 쓰지 않았나요?</td>
@@ -1041,9 +1047,9 @@
                   <td><code>GET /api/groups/{groupId}/votes</code>로 그룹 투표 목록을 조회합니다.</td>
                 </tr>
                 <tr>
-                  <td><code>GET /api/votes/{voteId}/pending-members</code></td>
-                  <td>선호 미제출 참여자를 따로 보여주는 UI가 아직 없습니다.</td>
-                  <td>현재는 투표 상태와 선택된 참여자 수만 보여줍니다.</td>
+                  <td><code>POST /api/votes/{voteId}/close</code></td>
+                  <td>방장 강제 마감 API라 일반 호불호 투표 흐름에서는 사용하지 않습니다.</td>
+                  <td>전원이 투표하면 백엔드가 자동 집계하고, 프론트는 <code>GET /api/votes/{voteId}</code>의 <code>resultMenu</code>를 기다립니다.</td>
                 </tr>
               </tbody>
             </table>

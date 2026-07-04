@@ -97,6 +97,10 @@ The frontend stores that response in `localStorage` under
 `unsik:auth_session` so the current minimal app can display member context and
 reuse the token for future API calls.
 
+The room list logout button clears `unsik:auth_session` from localStorage and
+returns the browser to `/main`. It does not call a backend logout API because
+the frontend only needs to discard the local JWT for this app session.
+
 When a backend API call returns `401`, `src/services/backend.ts` dispatches the
 `unsik:auth-expired` browser event. `src/App.tsx` handles that event by clearing
 `unsik:auth_session`, returning to `/main`, and asking the user to log in again.
