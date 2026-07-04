@@ -24,6 +24,9 @@ import {
   submitBallot,
   submitPreference,
 } from '@/services/backend';
+import oracleFateImage from '@/assets/images/mascots/oracle-fate-ai.png';
+import oracleMoonImage from '@/assets/images/mascots/oracle-moon-ai.png';
+import oracleStarImage from '@/assets/images/mascots/oracle-star-ai.png';
 
 import './vote-flow-screen.css';
 
@@ -100,20 +103,20 @@ const ORACLES = [
   {
     id: 'star',
     name: '별의 점쟁이',
-    image: '⭐',
-    copy: '깔끔하고 검증된 메뉴를 좋아하는 날에 강해요.',
+    imageSrc: oracleStarImage,
+    copy: '깔끔한 선택. 오늘 외모 운이 살짝 올라가요.',
   },
   {
     id: 'moon',
     name: '달의 점쟁이',
-    image: '🌙',
-    copy: '숨은 맛집과 의외의 조합을 잘 찾아요.',
+    imageSrc: oracleMoonImage,
+    copy: '치킨 운 상승. 따뜻한 메뉴를 잘 맞춰요.',
   },
   {
     id: 'fate',
     name: '운명의 점쟁이',
-    image: '🔮',
-    copy: '후회 없는 한 끼를 빠르게 확정해줘요.',
+    imageSrc: oracleFateImage,
+    copy: '57%가 고른 빠른 운명 확정 카드.',
   },
 ];
 
@@ -1183,33 +1186,83 @@ function OracleView({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const [sparkedOracleId, setSparkedOracleId] = useState<string | null>(null);
+  const sparkTimerRef = useRef<number | null>(null);
+  const selectedIndex = Math.max(
+    0,
+    ORACLES.findIndex((oracle) => oracle.id === selectedOracleId),
+  );
+  const leftIndex = (selectedIndex + ORACLES.length - 1) % ORACLES.length;
+
+  const getOraclePosition = (index: number) => {
+    if (index === selectedIndex) {
+      return 'active';
+    }
+
+    if (index === leftIndex) {
+      return 'left';
+    }
+
+    return 'right';
+  };
+
+  useEffect(() => {
+    return () => {
+      if (sparkTimerRef.current !== null) {
+        window.clearTimeout(sparkTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleSelectOracle = (oracleId: string) => {
+    if (sparkTimerRef.current !== null) {
+      window.clearTimeout(sparkTimerRef.current);
+    }
+
+    setSparkedOracleId(oracleId);
+    sparkTimerRef.current = window.setTimeout(() => {
+      setSparkedOracleId(null);
+    }, 560);
+    onSelect(oracleId);
+  };
+
   return (
     <>
       <VoteNav title="" onBack={onBack} />
       <header className="vote-oracle-header">
         <h1>
-          오늘 점심
+          각자의 성향을
           <br />
-          <span>운에 맡겨볼까요?</span>
+          <span>점쳐봅시다</span>
         </h1>
         <p>점쟁이가 당신의 오늘 점심을 점지해 드립니다</p>
       </header>
 
       <p className="vote-small-title">✦ 점술사를 선택하세요</p>
-      <div className="vote-oracle-grid">
-        {ORACLES.map((oracle) => (
+      <div className="vote-oracle-stage">
+        {ORACLES.map((oracle, index) => {
+          const position = getOraclePosition(index);
+
+          return (
           <button
-            className={oracle.id === selectedOracleId ? 'vote-oracle-card vote-oracle-card-selected' : 'vote-oracle-card'}
+            className={`vote-oracle-card vote-oracle-card-${position}${
+              oracle.id === selectedOracleId ? ' vote-oracle-card-selected' : ''
+            }${oracle.id === sparkedOracleId ? ' vote-oracle-card-sparked' : ''
+            }`}
             type="button"
             key={oracle.id}
-            onClick={() => onSelect(oracle.id)}
+            onClick={() => handleSelectOracle(oracle.id)}
+            aria-pressed={oracle.id === selectedOracleId}
           >
-            <span className="vote-oracle-image">{oracle.image}</span>
+            <span className="vote-oracle-image">
+              <img src={oracle.imageSrc} alt="" aria-hidden="true" />
+            </span>
             <strong>{oracle.name}</strong>
             <small>{oracle.copy}</small>
             <em />
           </button>
-        ))}
+          );
+        })}
       </div>
 
       <div className="vote-warning-banner">⚠ 알레르기 · 음식 제한은 다음 단계에서</div>
