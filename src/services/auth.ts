@@ -10,6 +10,7 @@ export type AuthSession = {
 
 type KakaoAuthRequest = {
   code: string;
+  redirectUri: string;
 };
 
 const AUTH_SESSION_STORAGE_KEY = 'unsik:auth_session';
@@ -21,7 +22,10 @@ export const KAKAO_CALLBACK_PATH = '/auth/kakao/callback';
 const verifiedKakaoOAuthStates = new Set<string>();
 
 export async function authenticateWithKakaoCode(code: string): Promise<AuthSession> {
-  const body: KakaoAuthRequest = { code };
+  const body: KakaoAuthRequest = {
+    code,
+    redirectUri: getKakaoRedirectUri(),
+  };
   const response = await fetch(createApiUrl('/api/auth/kakao'), {
     method: 'POST',
     headers: {
