@@ -51,6 +51,8 @@ missing backend contracts render empty or API-required states instead.
   `manifest.webmanifest`, and `service-worker.js`
 - `docs/ai`: durable AI context and rules
 - `docs/frontend-study-guide.html`: dark-mode frontend study guide for humans
+- `docs/project-implementation-overview.html`: human-readable implementation
+  overview, API usage map, maintainability notes, and backend contract gaps
 
 The project is still plain React DOM without React Router. Routing is handled in
 `src/App.tsx` with browser history and path parsing. React Native, Expo Router,
