@@ -43,35 +43,6 @@
   min-height: 44px;
 }
 
-.room-list-back {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 0;
-  border-radius: 8px;
-  background: #1d1b3d;
-  color: #c7c7e5;
-  cursor: pointer;
-  font-size: 17px;
-  line-height: 1;
-  transition:
-    background 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.room-list-back:active {
-  transform: scale(0.96);
-}
-
-.room-list-back:hover {
-  background: #252250;
-  color: #ffffff;
-}
-
-.room-list-back:focus-visible,
 .room-enter-button:focus-visible,
 .room-menu-button:focus-visible,
 .room-menu-item:focus-visible,

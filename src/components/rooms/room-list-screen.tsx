@@ -9,12 +9,9 @@ import './room-list-screen.css';
 type RoomListScreenProps = {
   memberId?: number;
   memberName?: string;
-  onBack: () => void;
   onOpenRoom: (roomId: string) => void;
   token?: string;
 };
-
-type RoomTone = 'featured' | 'muted' | 'quiet';
 
 type Room = {
   id: string;
@@ -47,7 +44,7 @@ const MAX_MEMBER_OPTIONS = [4, 5, 6, 8] as const;
 const MEMBER_COLORS = ['#9e6bf5', '#f55947', '#4785f5', '#33c766', '#f5c829', '#21c2a9'] as const;
 
 const MENU_ITEMS: Array<{ action: MenuAction; icon: string; label: string; kind: 'normal' | 'danger' }> = [
-  { action: 'copy', icon: '🔗', label: '링크 복사', kind: 'normal' },
+  { action: 'copy', icon: '🔗', label: '코드 복사', kind: 'normal' },
   { action: 'delete', icon: '🗑️', label: '방 삭제', kind: 'danger' },
 ];
 
@@ -61,22 +58,6 @@ const STARS = [
 
 const INVITE_CODE_SEARCH_PARAM = 'code';
 const PENDING_INVITE_CODE_STORAGE_KEY = 'unsik:pending_invite_code';
-
-function getRoomTone(index: number): RoomTone {
-  if (index === 0) {
-    return 'featured';
-  }
-
-  if (index === 1) {
-    return 'muted';
-  }
-
-  return 'quiet';
-}
-
-function createRoomLink(code: string) {
-  return `${window.location.origin}/grouplist?code=${encodeURIComponent(code)}`;
-}
 
 function readInviteCodeFromLocation(): string | null {
   const inviteCode = new URLSearchParams(window.location.search).get(INVITE_CODE_SEARCH_PARAM)?.trim();
@@ -123,12 +104,10 @@ function readInitialInviteCode(): string | null {
   return readInviteCodeFromLocation() ?? readStoredInviteCode();
 }
 
-async function copyRoomLink(room: Room) {
-  const link = createRoomLink(room.code);
+async function copyRoomCode(room: Room) {
+  await navigator.clipboard.writeText(room.code);
 
-  await navigator.clipboard.writeText(link);
-
-  return link;
+  return room.code;
 }
 
 async function groupToRoom(
@@ -195,7 +174,7 @@ function getErrorMessage(error: unknown): string {
   return '알 수 없는 오류가 발생했어요.';
 }
 
-export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token }: RoomListScreenProps) {
+export function RoomListScreen({ memberId, memberName, onOpenRoom, token }: RoomListScreenProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -501,12 +480,10 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
 
     if (action === 'copy') {
       try {
-        await copyRoomLink(room);
-        showToast('초대 링크를 복사했어요');
+        await copyRoomCode(room);
+        showToast('방 코드를 복사했어요');
       } catch {
-        const link = createRoomLink(room.code);
-
-        showToast(`복사할 링크: ${link}`);
+        showToast(`복사할 코드: ${room.code}`);
       }
 
       return;
@@ -523,9 +500,7 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
         <StarField />
 
         <nav className="room-list-nav" aria-label="방 목록 탐색">
-          <button className="room-list-back" type="button" onClick={onBack} aria-label="메인으로 돌아가기">
-            <span aria-hidden="true">←</span>
-          </button>
+          <span aria-hidden="true" />
           <p className="room-list-nav-title">방 목록</p>
           <span aria-hidden="true" />
         </nav>
@@ -554,7 +529,6 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
                   onToggleMenu={() => setOpenMenuId((current) => (current === room.id ? null : room.id))}
                   room={room}
                   style={{ '--room-delay': `${index * 80}ms` } as CSSProperties}
-                  tone={getRoomTone(index)}
                 />
               ))}
             </div>
@@ -608,7 +582,6 @@ export function RoomListScreen({ memberId, memberName, onBack, onOpenRoom, token
 
 type RoomCardProps = {
   room: Room;
-  tone: RoomTone;
   isMenuOpen: boolean;
   onOpen: () => void;
   onToggleMenu: () => void;
@@ -616,8 +589,8 @@ type RoomCardProps = {
   style: CSSProperties;
 };
 
-function RoomCard({ room, tone, isMenuOpen, onOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
-  const cardClassName = `room-card room-card-${tone}${isMenuOpen ? ' room-card-open' : ''}`;
+function RoomCard({ room, isMenuOpen, onOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
+  const cardClassName = `room-card room-card-featured${isMenuOpen ? ' room-card-open' : ''}`;
 
   return (
     <article className={cardClassName} style={style}>

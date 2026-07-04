@@ -134,7 +134,6 @@ export function App() {
       <RoomListScreen
         memberId={authSession?.member.id}
         memberName={authSession?.member.name}
-        onBack={() => navigate({ type: 'main' })}
         onOpenRoom={(roomId) => navigate({ type: 'groupVotes', groupId: roomId })}
         token={authSession?.token}
       />
