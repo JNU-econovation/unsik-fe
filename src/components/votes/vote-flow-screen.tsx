@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { formatUnknownErrorMessage } from '@/services/api-error';
 import type {
   BackendContext,
   CandidateMenuResponse,
@@ -10,6 +11,7 @@ import type {
   RestaurantDocument,
   Restriction,
   School,
+  SchoolResponse,
   VoteDetailResponse,
   VoteSummaryResponse,
 } from '@/services/backend';
@@ -21,6 +23,7 @@ import {
   listGroupVotes,
   listMenus,
   listPendingPreferenceMembers,
+  listSchools,
   recommendMenus,
   searchRestaurants,
   submitBallot,
@@ -50,6 +53,7 @@ type VoteStep =
   | 'reveal'
   | 'final'
   | 'restaurant'
+  | 'history'
   | 'score';
 
 type VoteMember = GroupMemberResponse & {
@@ -60,7 +64,6 @@ type PlaceOption = {
   key: string;
   label: string;
   school: School;
-  backendNote: string;
 };
 
 type CandidateCard = CandidateMenuResponse & {
@@ -83,22 +86,49 @@ type VoteSummary = {
   voteId: number;
   title: string;
   status: string;
+  deadline: string;
   meta: string;
   placeLabel: string;
   school: School;
   participantIds: number[];
+  resultMenu: CandidateMenuResponse | null;
 };
 
 type MenuCatalogStatus = 'idle' | 'loading' | 'loaded' | 'error';
+type MealHistoryFilter = 'all' | 'month' | 'favorite';
+type RecommendAttemptStatus = 'ready' | 'pending' | 'failed';
+
+type MealHistoryItem = {
+  id: string;
+  menuName: string;
+  subtitle: string;
+  placeLabel: string;
+  date: Date | null;
+  dateLabel: string;
+  favorite: boolean;
+};
 
 const MEMBER_COLORS = ['#e8c7ab', '#fcd4de', '#c9ede3', '#dbd1f7', '#c9f2b4', '#b9d9ff'];
 
+const HISTORY_FILTERS: Array<{ value: MealHistoryFilter; label: string }> = [
+  { value: 'all', label: '전체' },
+  { value: 'month', label: '이번 달' },
+  { value: 'favorite', label: '즐겨찾기' },
+];
+
+const SCHOOL_ORDER: School[] = ['JEONGMOON', 'HOOMOON', 'SANGDAE', 'YEDAE'];
+const SCHOOL_PLACE_KEYS: Record<School, string> = {
+  JEONGMOON: 'front',
+  HOOMOON: 'back',
+  SANGDAE: 'business',
+  YEDAE: 'art',
+};
+
 const PLACE_OPTIONS: PlaceOption[] = [
-  { key: 'front', label: '정문', school: 'GONGDAE', backendNote: '정문은 백엔드 학교 코드 GONGDAE로 보냅니다.' },
-  { key: 'back', label: '후문', school: 'GONGDAE', backendNote: '후문은 백엔드 학교 코드 GONGDAE로 보냅니다.' },
-  { key: 'business', label: '상대', school: 'SANGDAE', backendNote: '상대는 SANGDAE로 보냅니다.' },
-  { key: 'art', label: '예대', school: 'YEDAE', backendNote: '예대는 YEDAE로 보냅니다.' },
-  { key: 'any', label: '상관없어', school: 'GONGDAE', backendNote: '상관없어는 기본 GONGDAE로 보냅니다.' },
+  createPlaceOption('JEONGMOON'),
+  createPlaceOption('HOOMOON'),
+  createPlaceOption('SANGDAE'),
+  createPlaceOption('YEDAE'),
 ];
 
 const ORACLES = [
@@ -177,6 +207,8 @@ export function VoteFlowScreen({
   const [step, setStep] = useState<VoteStep>('list');
   const [voteTitle, setVoteTitle] = useState('오늘 점심');
   const [selectedPlaceKey, setSelectedPlaceKey] = useState('back');
+  const [placeOptions, setPlaceOptions] = useState<PlaceOption[]>(PLACE_OPTIONS);
+  const [historyFilter, setHistoryFilter] = useState<MealHistoryFilter>('all');
   const [voteSummaries, setVoteSummaries] = useState<VoteSummary[]>([]);
   const [members, setMembers] = useState<VoteMember[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<number>>(() => new Set());
@@ -191,6 +223,7 @@ export function VoteFlowScreen({
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [ballotChoices, setBallotChoices] = useState<Record<number, BallotChoice>>({});
+  const [submittedPreferenceVoteIds, setSubmittedPreferenceVoteIds] = useState<Set<number>>(() => new Set());
   const [submittedBallotVoteIds, setSubmittedBallotVoteIds] = useState<Set<number>>(() => new Set());
   const [pendingPreferenceMemberIds, setPendingPreferenceMemberIds] = useState<Set<number> | null>(null);
   const [finalMenu, setFinalMenu] = useState<CandidateCard | null>(null);
@@ -203,11 +236,15 @@ export function VoteFlowScreen({
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
-  const selectedPlace = PLACE_OPTIONS.find((place) => place.key === selectedPlaceKey) ?? PLACE_OPTIONS[1];
+  const selectedPlace = placeOptions.find((place) => place.key === selectedPlaceKey) ?? placeOptions[1] ?? PLACE_OPTIONS[1];
   const selectedMembers = members.filter((member) => selectedMemberIds.has(member.memberId));
+  const mealHistoryItems = useMemo(() => toMealHistoryItems(voteSummaries), [voteSummaries]);
   const currentCandidate = candidates[activeCardIndex] ?? null;
   const likedCandidate = candidates.find((candidate) => ballotChoices[candidate.menuId] === 'LIKE');
+  const hasSubmittedActivePreference = activeVote?.id ? submittedPreferenceVoteIds.has(activeVote.id) : false;
   const hasSubmittedActiveBallot = activeVote?.id ? submittedBallotVoteIds.has(activeVote.id) : false;
+  const isWaitingForPreferenceCompletion =
+    hasSubmittedActivePreference && !hasSubmittedActiveBallot && candidates.length === 0 && !finalMenu;
   const checkedStatusMemberIds = useMemo(() => {
     const checkedMemberIds = new Set<number>();
 
@@ -223,12 +260,23 @@ export function VoteFlowScreen({
       checkedMemberIds.add(memberId);
     }
 
+    if (hasSubmittedActivePreference && memberId) {
+      checkedMemberIds.add(memberId);
+    }
+
     if (finalMenu) {
       selectedMembers.forEach((member) => checkedMemberIds.add(member.memberId));
     }
 
     return checkedMemberIds;
-  }, [finalMenu, hasSubmittedActiveBallot, memberId, pendingPreferenceMemberIds, selectedMembers]);
+  }, [
+    finalMenu,
+    hasSubmittedActiveBallot,
+    hasSubmittedActivePreference,
+    memberId,
+    pendingPreferenceMemberIds,
+    selectedMembers,
+  ]);
   const excludedMenus = useMemo(
     () => menuCatalog.filter((menu) => excludedMenuIds.has(menu.id)),
     [excludedMenuIds, menuCatalog],
@@ -248,6 +296,37 @@ export function VoteFlowScreen({
       if (toastTimerRef.current !== null) {
         window.clearTimeout(toastTimerRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    listSchools()
+      .then((schools) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const nextPlaceOptions = toPlaceOptions(schools);
+
+        if (nextPlaceOptions.length === 0) {
+          return;
+        }
+
+        setPlaceOptions(nextPlaceOptions);
+        setSelectedPlaceKey((currentKey) =>
+          nextPlaceOptions.some((place) => place.key === currentKey)
+            ? currentKey
+            : getDefaultPlaceKey(nextPlaceOptions),
+        );
+      })
+      .catch(() => {
+        // Fallback place options stay available when the optional school list request fails.
+      });
+
+    return () => {
+      isCurrent = false;
     };
   }, []);
 
@@ -280,7 +359,7 @@ export function VoteFlowScreen({
         if (isCurrent) {
           setMembers([]);
           setSelectedMemberIds(new Set());
-          setApiMessage(`그룹원 API 호출 실패: ${getErrorMessage(error)}`);
+          setApiMessage(`그룹원을 불러오지 못했어요: ${getErrorMessage(error)}`);
         }
       });
 
@@ -299,7 +378,7 @@ export function VoteFlowScreen({
 
     if (!hasBackendGroup) {
       setVoteSummaries([]);
-      setVoteListMessage('유효한 그룹 id가 없어 투표 목록을 불러올 수 없어요.');
+      setVoteListMessage('그룹 정보를 확인할 수 없어 투표 목록을 불러올 수 없어요.');
       setIsLoadingVoteSummaries(false);
       return undefined;
     }
@@ -323,7 +402,7 @@ export function VoteFlowScreen({
         }
 
         setVoteSummaries([]);
-        setVoteListMessage(`그룹 투표 목록 API 호출 실패: ${getErrorMessage(error)}`);
+        setVoteListMessage(`투표 목록을 불러오지 못했어요: ${getErrorMessage(error)}`);
       })
       .finally(() => {
         if (isCurrent) {
@@ -354,7 +433,7 @@ export function VoteFlowScreen({
         setMenuCatalogStatus('loaded');
 
         if (menus.length === 0) {
-          setApiMessage('전체 메뉴 조회 API 응답이 비어 있어 메뉴 검색을 사용할 수 없어요.');
+          setApiMessage('불러온 메뉴가 없어 검색을 사용할 수 없어요.');
         }
       })
       .catch((error: unknown) => {
@@ -364,7 +443,7 @@ export function VoteFlowScreen({
 
         setMenuCatalog([]);
         setMenuCatalogStatus('error');
-        setApiMessage(`전체 메뉴 조회 API 호출 실패: ${getErrorMessage(error)}`);
+        setApiMessage(`메뉴 목록을 불러오지 못했어요: ${getErrorMessage(error)}`);
       });
 
     return () => {
@@ -380,6 +459,7 @@ export function VoteFlowScreen({
 
     let isCurrent = true;
     const voteId = activeVote.id;
+    const currentMemberId = context.memberId;
 
     listPendingPreferenceMembers({ memberId: context.memberId, token: context.token }, voteId)
       .then((pendingMembers) => {
@@ -387,7 +467,13 @@ export function VoteFlowScreen({
           return;
         }
 
-        setPendingPreferenceMemberIds(new Set(pendingMembers.map((member) => member.memberId)));
+        const pendingIds = new Set(pendingMembers.map((member) => member.memberId));
+
+        setPendingPreferenceMemberIds(pendingIds);
+
+        if (!pendingIds.has(currentMemberId)) {
+          setSubmittedPreferenceVoteIds((current) => new Set(current).add(voteId));
+        }
       })
       .catch((error: unknown) => {
         if (!isCurrent) {
@@ -395,7 +481,7 @@ export function VoteFlowScreen({
         }
 
         setPendingPreferenceMemberIds(null);
-        setApiMessage(`선호 제출 현황 API 호출 실패: ${getErrorMessage(error)}`);
+        setApiMessage(`선호 제출 현황을 확인하지 못했어요: ${getErrorMessage(error)}`);
       });
 
     return () => {
@@ -422,7 +508,7 @@ export function VoteFlowScreen({
         }
 
         setRestaurants(result.documents);
-        setApiMessage(result.documents.length > 0 ? null : '추천 식당 API 응답이 비어 있습니다.');
+        setApiMessage(result.documents.length > 0 ? null : '추천 식당을 찾지 못했어요.');
       })
       .catch((error: unknown) => {
         if (!isCurrent) {
@@ -430,7 +516,7 @@ export function VoteFlowScreen({
         }
 
         setRestaurants([]);
-        setApiMessage(`추천 식당 API 호출 실패: ${getErrorMessage(error)}`);
+        setApiMessage(`추천 식당을 불러오지 못했어요: ${getErrorMessage(error)}`);
       })
       .finally(() => {
         if (isCurrent) {
@@ -454,10 +540,224 @@ export function VoteFlowScreen({
     }, 2400);
   };
 
+  const applyRecommendResult = useCallback((result: Awaited<ReturnType<typeof recommendMenus>>): boolean => {
+    const apiCandidates = result.candidates.map(toCandidateCard);
+
+    if (result.impossible || apiCandidates.length === 0) {
+      setCandidates([]);
+      setApiMessage('추천 가능한 후보가 없습니다. 선호 조건을 줄이거나 다시 시도해 주세요.');
+      return false;
+    }
+
+    setCandidates(apiCandidates);
+    setActiveCardIndex(0);
+    setBallotChoices({});
+    setApiMessage(null);
+    setStep('cards');
+
+    return true;
+  }, []);
+
+  const markPreferenceSubmitted = useCallback(
+    (voteId: number) => {
+      setSubmittedPreferenceVoteIds((current) => new Set(current).add(voteId));
+
+      const currentMemberId = context.memberId;
+
+      if (!currentMemberId) {
+        return;
+      }
+
+      setPendingPreferenceMemberIds((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(currentMemberId);
+
+        return next;
+      });
+    },
+    [context.memberId],
+  );
+
+  const loadPendingPreferenceIds = useCallback(
+    async (voteId: number): Promise<Set<number> | null> => {
+      if (!context.memberId) {
+        return null;
+      }
+
+      const pendingMembers = await listPendingPreferenceMembers(
+        { memberId: context.memberId, token: context.token },
+        voteId,
+      );
+      const pendingIds = new Set(pendingMembers.map((member) => member.memberId));
+
+      setPendingPreferenceMemberIds(pendingIds);
+
+      if (!pendingIds.has(context.memberId)) {
+        setSubmittedPreferenceVoteIds((current) => new Set(current).add(voteId));
+      }
+
+      return pendingIds;
+    },
+    [context.memberId, context.token],
+  );
+
+  const tryRecommendVote = useCallback(
+    async (voteId: number, quiet = false): Promise<RecommendAttemptStatus> => {
+      if (!context.memberId) {
+        return 'failed';
+      }
+
+      try {
+        const result = await recommendMenus({ memberId: context.memberId, token: context.token }, voteId);
+
+        return applyRecommendResult(result) ? 'ready' : 'failed';
+      } catch (error) {
+        if (hasApiErrorCode(error, 409)) {
+          if (!quiet) {
+            setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
+          }
+
+          return 'pending';
+        }
+
+        if (!quiet) {
+          setApiMessage(`추천 후보를 준비하지 못했어요: ${getErrorMessage(error)}`);
+        }
+
+        return 'failed';
+      }
+    },
+    [applyRecommendResult, context.memberId, context.token],
+  );
+
+  const refreshPreferenceWait = useCallback(
+    async (quiet = false) => {
+      if (!activeVote?.id || !context.memberId) {
+        return;
+      }
+
+      try {
+        const pendingIds = await loadPendingPreferenceIds(activeVote.id);
+
+        if (!pendingIds) {
+          return;
+        }
+
+        if (pendingIds.size === 0) {
+          if (!quiet) {
+            setApiMessage('모든 선호가 제출되어 추천 후보를 준비하고 있어요.');
+          }
+
+          await tryRecommendVote(activeVote.id, quiet);
+          return;
+        }
+
+        if (hasSubmittedActivePreference && !quiet) {
+          setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
+        }
+      } catch (error) {
+        if (!quiet) {
+          setApiMessage(`선호 제출 현황을 확인하지 못했어요: ${getErrorMessage(error)}`);
+        }
+      }
+    },
+    [activeVote?.id, context.memberId, hasSubmittedActivePreference, loadPendingPreferenceIds, tryRecommendVote],
+  );
+
+  const refreshBallotResult = useCallback(
+    async (quiet = false) => {
+      if (!activeVote?.id || !context.memberId) {
+        return;
+      }
+
+      try {
+        const vote = await getVote({ memberId: context.memberId, token: context.token }, activeVote.id);
+
+        setVoteSummaries((current) =>
+          current.map((summary) => (summary.voteId === activeVote.id ? toVoteSummary(vote, summary) : summary)),
+        );
+
+        if (vote.resultMenu) {
+          setFinalMenu(toCandidateCard(vote.resultMenu));
+          setVoteSummaries((current) =>
+            current.map((summary) =>
+              summary.voteId === activeVote.id
+                ? { ...summary, status: getVoteStatusLabel(vote.status), resultMenu: vote.resultMenu }
+                : summary,
+            ),
+          );
+          setApiMessage(null);
+          setStep('final');
+          return;
+        }
+
+        if (!quiet) {
+          setApiMessage('내 투표는 제출됐습니다. 참여자 전원이 투표하면 결과가 자동 확정됩니다.');
+        }
+      } catch (error) {
+        if (!quiet) {
+          setApiMessage(`투표 상태를 확인하지 못했어요: ${getErrorMessage(error)}`);
+        }
+      }
+    },
+    [activeVote?.id, context.memberId, context.token],
+  );
+
+  useEffect(() => {
+    if (
+      step !== 'status' ||
+      !activeVote?.id ||
+      !hasSubmittedActivePreference ||
+      hasSubmittedActiveBallot ||
+      candidates.length > 0 ||
+      finalMenu
+    ) {
+      return undefined;
+    }
+
+    void refreshPreferenceWait(true);
+
+    const intervalId = window.setInterval(() => {
+      void refreshPreferenceWait(true);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    activeVote?.id,
+    candidates.length,
+    finalMenu,
+    hasSubmittedActiveBallot,
+    hasSubmittedActivePreference,
+    refreshPreferenceWait,
+    step,
+  ]);
+
+  useEffect(() => {
+    if (step !== 'status' || !activeVote?.id || !hasSubmittedActiveBallot || finalMenu) {
+      return undefined;
+    }
+
+    void refreshBallotResult(true);
+
+    const intervalId = window.setInterval(() => {
+      void refreshBallotResult(true);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [activeVote?.id, finalMenu, hasSubmittedActiveBallot, refreshBallotResult, step]);
+
   const resetForNewVote = (title: string) => {
     setVoteTitle(title);
     setActiveVote(null);
-    setSelectedPlaceKey('back');
+    setSelectedPlaceKey(getDefaultPlaceKey(placeOptions));
     setSelectedMemberIds(new Set(members.map((member) => member.memberId)));
     setDislikedCuisines(new Set());
     setRestrictions(new Set());
@@ -495,6 +795,13 @@ export function VoteFlowScreen({
     }
 
     const participantIds = Array.from(selectedMemberIds);
+    const participantIdsForRequest = getParticipantIdsForVoteRequest(participantIds, members);
+
+    if (participantIdsForRequest.length === 0) {
+      showToast('방장을 제외한 참여자를 한 명 이상 선택해 주세요.');
+      return;
+    }
+
     const baseVote: ActiveVote = {
       title: voteTitle.trim() || '오늘의 투표',
       placeLabel: selectedPlace.label,
@@ -502,17 +809,24 @@ export function VoteFlowScreen({
       participantIds,
     };
 
-    const addVoteSummary = (voteId: number, status: string) => {
+    const addVoteSummary = (
+      voteId: number,
+      status: string,
+      deadline: string,
+      resultMenu: CandidateMenuResponse | null,
+    ) => {
       setVoteSummaries((current) => {
         const summary = {
           id: String(voteId),
           voteId,
           title: baseVote.title,
           status,
+          deadline,
           meta: `${baseVote.placeLabel} · 참여자 ${participantIds.length}명`,
           placeLabel: baseVote.placeLabel,
           school: baseVote.school,
           participantIds,
+          resultMenu,
         };
 
         return [summary, ...current.filter((item) => item.voteId !== voteId)];
@@ -523,31 +837,33 @@ export function VoteFlowScreen({
     setApiMessage(null);
 
     if (!hasBackendGroup || !context.memberId) {
-      setApiMessage('로그인 회원 id 또는 숫자형 그룹 id가 없어 투표를 생성할 수 없어요.');
+      setApiMessage('로그인 정보 또는 그룹 정보를 확인할 수 없어 투표를 만들 수 없어요.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const createdVote = await createVote(
-        numericGroupId,
-        {
-          title: baseVote.title,
-          deadline: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
-          school: baseVote.school,
-          participantMemberIds: participantIds,
-        },
-        context.token,
-      );
+      const deadline = formatBackendDateTime(new Date(Date.now() + 1000 * 60 * 60 * 2));
+      const createdVote = await createVote(numericGroupId, {
+        title: baseVote.title,
+        deadline,
+        school: baseVote.school,
+        participantMemberIds: participantIdsForRequest,
+      }, context.token);
 
       setActiveVote({
         ...baseVote,
         id: createdVote.id,
       });
-      addVoteSummary(createdVote.id, getVoteStatusLabel(createdVote.status));
+      addVoteSummary(
+        createdVote.id,
+        getVoteStatusLabel(createdVote.status),
+        createdVote.deadline || deadline,
+        createdVote.resultMenu,
+      );
       setStep('status');
     } catch (error) {
-      setApiMessage(`투표 생성 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`투표를 만들지 못했어요: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -560,7 +876,7 @@ export function VoteFlowScreen({
     try {
       setPendingPreferenceMemberIds(null);
       const detail = context.memberId ? await getVote({ memberId: context.memberId, token: context.token }, vote.voteId) : null;
-      const nextSummary = detail ? toVoteSummary(detail) : vote;
+      const nextSummary = detail ? toVoteSummary(detail, vote) : vote;
       const nextCandidates = detail?.candidates.map(toCandidateCard) ?? [];
       const hasSubmittedBallot = submittedBallotVoteIds.has(nextSummary.voteId);
 
@@ -590,7 +906,7 @@ export function VoteFlowScreen({
         setStep(nextCandidates.length > 0 ? 'cards' : 'status');
       }
     } catch (error) {
-      setApiMessage(`투표 상태 조회 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`투표 상태를 확인하지 못했어요: ${getErrorMessage(error)}`);
       setActiveVote({
         id: vote.voteId,
         title: vote.title,
@@ -607,7 +923,7 @@ export function VoteFlowScreen({
 
   const handleCancelVote = async () => {
     if (!activeVote?.id || !context.memberId) {
-      setApiMessage('백엔드 voteId 또는 회원 id가 없어 투표를 삭제할 수 없어요.');
+      setApiMessage('투표 정보 또는 로그인 정보를 확인할 수 없어 삭제할 수 없어요.');
       return;
     }
 
@@ -626,6 +942,13 @@ export function VoteFlowScreen({
 
         return next;
       });
+      setSubmittedPreferenceVoteIds((current) => {
+        const next = new Set(current);
+
+        next.delete(voteId);
+
+        return next;
+      });
       setActiveVote(null);
       setCandidates([]);
       setBallotChoices({});
@@ -634,7 +957,7 @@ export function VoteFlowScreen({
       setStep('list');
       showToast('투표를 삭제했어요.');
     } catch (error) {
-      setApiMessage(`투표 삭제 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`투표를 삭제하지 못했어요: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -665,7 +988,7 @@ export function VoteFlowScreen({
     setApiMessage(null);
 
     if (!activeVote?.id || !context.memberId) {
-      setApiMessage('백엔드 voteId 또는 회원 id가 없어 추천 후보를 받을 수 없어요.');
+      setApiMessage('투표 정보 또는 로그인 정보를 확인할 수 없어 추천 후보를 받을 수 없어요.');
       setIsLoading(false);
       return;
     }
@@ -680,22 +1003,17 @@ export function VoteFlowScreen({
         },
       );
 
-      const result = await recommendMenus({ memberId: context.memberId, token: context.token }, activeVote.id);
-      const apiCandidates = result.candidates.map(toCandidateCard);
+      markPreferenceSubmitted(activeVote.id);
 
-      if (result.impossible || apiCandidates.length === 0) {
-        setCandidates([]);
-        setApiMessage('추천 가능한 후보가 없습니다. 선호 조건을 줄이거나 다시 시도해 주세요.');
-        setIsLoading(false);
-        return;
+      const recommendStatus = await tryRecommendVote(activeVote.id);
+
+      if (recommendStatus === 'pending') {
+        await loadPendingPreferenceIds(activeVote.id).catch(() => null);
+        setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
+        setStep('status');
       }
-
-      setCandidates(apiCandidates);
-      setActiveCardIndex(0);
-      setBallotChoices({});
-      setStep('cards');
     } catch (error) {
-      setApiMessage(`선호/추천 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`선호를 제출하지 못했어요: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -727,7 +1045,7 @@ export function VoteFlowScreen({
     setApiMessage(null);
 
     if (!activeVote?.id || !context.memberId) {
-      setApiMessage('백엔드 voteId 또는 회원 id가 없어 결과를 확정할 수 없어요.');
+      setApiMessage('투표 정보 또는 로그인 정보를 확인할 수 없어 결과를 확정할 수 없어요.');
       setIsLoading(false);
       return;
     }
@@ -742,17 +1060,15 @@ export function VoteFlowScreen({
       await submitBallot({ memberId: context.memberId, token: context.token }, voteId, apiChoices);
       setSubmittedBallotVoteIds((current) => new Set(current).add(voteId));
     } catch (error) {
-      setApiMessage(`호불호 투표 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`호불호 투표를 제출하지 못했어요: ${getErrorMessage(error)}`);
       setIsLoading(false);
       return;
     }
 
     try {
       const voteAfterBallot = await getVote({ memberId: context.memberId, token: context.token }, voteId);
-      const nextSummary = toVoteSummary(voteAfterBallot);
-
       setVoteSummaries((current) =>
-        current.map((summary) => (summary.voteId === voteId ? nextSummary : summary)),
+        current.map((summary) => (summary.voteId === voteId ? toVoteSummary(voteAfterBallot, summary) : summary)),
       );
 
       if (voteAfterBallot.resultMenu) {
@@ -777,7 +1093,9 @@ export function VoteFlowScreen({
           setFinalMenu(toCandidateCard(vote.resultMenu));
           setVoteSummaries((current) =>
             current.map((summary) =>
-              summary.voteId === voteId ? { ...summary, status: getVoteStatusLabel(vote.status) } : summary,
+              summary.voteId === voteId
+                ? { ...summary, status: getVoteStatusLabel(vote.status), resultMenu: vote.resultMenu }
+                : summary,
             ),
           );
           setStep('final');
@@ -788,7 +1106,7 @@ export function VoteFlowScreen({
         // The first status lookup failure below is the actionable failure for the user.
       }
 
-      setApiMessage(`투표 상태 조회 API 호출 실패: ${getErrorMessage(error)}`);
+      setApiMessage(`투표 상태를 확인하지 못했어요: ${getErrorMessage(error)}`);
       setStep('status');
       setIsLoading(false);
     }
@@ -837,7 +1155,7 @@ export function VoteFlowScreen({
     const restriction = option.restriction;
 
     if (option.unsupported || !restriction) {
-      showToast(`${option.label}은 현재 백엔드 제한 enum에 없어 전송하지 않아요.`);
+      showToast(`${option.label}은 아직 선택할 수 없어요.`);
       return;
     }
 
@@ -872,8 +1190,8 @@ export function VoteFlowScreen({
           onPlaceChange={setSelectedPlaceKey}
           onTitleChange={setVoteTitle}
           onToggleMember={toggleMember}
+          placeOptions={placeOptions}
           selectedMemberIds={selectedMemberIds}
-          selectedPlace={selectedPlace}
           selectedPlaceKey={selectedPlaceKey}
           title={voteTitle}
         />
@@ -883,23 +1201,41 @@ export function VoteFlowScreen({
     if (step === 'status') {
       return (
         <VoteStatusView
-          activeVote={activeVote}
           apiMessage={apiMessage}
           checkedMemberIds={checkedStatusMemberIds}
           hasSubmittedBallot={hasSubmittedActiveBallot}
+          hasSubmittedPreference={hasSubmittedActivePreference}
+          isWaitingForPreferenceCompletion={isWaitingForPreferenceCompletion}
           isLoading={isLoading}
           members={selectedMembers}
-          onBack={() => setStep(hasSubmittedActiveBallot ? 'list' : 'setup')}
+          onBack={() => setStep(hasSubmittedActiveBallot || hasSubmittedActivePreference ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
+          onOpenHistory={() => setStep('history')}
           onNext={() => {
             if (hasSubmittedActiveBallot) {
               setStep('list');
               return;
             }
 
+            if (isWaitingForPreferenceCompletion) {
+              void refreshPreferenceWait(false);
+              return;
+            }
+
             setStep('oracle');
           }}
           onNotify={() => void handleVoteReminder()}
+        />
+      );
+    }
+
+    if (step === 'history') {
+      return (
+        <MealHistoryView
+          filter={historyFilter}
+          items={mealHistoryItems}
+          onBack={() => setStep('status')}
+          onFilterChange={setHistoryFilter}
         />
       );
     }
@@ -941,7 +1277,7 @@ export function VoteFlowScreen({
         return (
           <VoteBlockingView
             actionLabel="취향 다시 선택"
-            message={apiMessage ?? '추천 후보 API 응답이 비어 있어 카드 투표를 진행할 수 없어요.'}
+            message={apiMessage ?? '추천 후보가 없어 카드 투표를 진행할 수 없어요.'}
             onAction={() => setStep('preference')}
             onBack={() => setStep('preference')}
             title="추천 후보 없음"
@@ -999,7 +1335,7 @@ export function VoteFlowScreen({
         return (
           <VoteBlockingView
             actionLabel="투표 목록으로"
-            message={apiMessage ?? '백엔드에서 확정된 메뉴를 받지 못했습니다.'}
+            message={apiMessage ?? '확정된 메뉴를 아직 받지 못했어요.'}
             onAction={() => setStep('list')}
             onBack={() => setStep('reveal')}
             title="확정 메뉴 없음"
@@ -1064,7 +1400,7 @@ export function VoteFlowScreen({
   };
 
   return (
-    <main className="vote-flow-screen">
+    <main className={step === 'history' ? 'vote-flow-screen vote-history-screen' : 'vote-flow-screen'}>
       <section className="vote-flow-canvas">
         <StarField />
         {renderStep()}
@@ -1125,13 +1461,9 @@ function VoteListView({
       ) : (
         <div className="vote-empty-panel">
           <strong>{emptyTitle}</strong>
-          <p>{isLoading ? '백엔드에서 이 그룹의 투표를 조회하고 있어요.' : message ?? '새 투표를 만들어 메뉴를 정해보세요.'}</p>
+          <p>{isLoading ? '투표를 불러오는 중입니다.' : message ?? '새 투표를 만들어 메뉴를 정해보세요.'}</p>
         </div>
       )}
-
-      <div className="vote-api-note">
-        현재 그룹에 속한 투표를 백엔드에서 불러옵니다.
-      </div>
 
       <div className="vote-bottom-actions">
         <button className="vote-primary-button" type="button" onClick={onCreate}>
@@ -1145,7 +1477,7 @@ function VoteListView({
 function VoteSetupView({
   title,
   selectedPlaceKey,
-  selectedPlace,
+  placeOptions,
   selectedMemberIds,
   members,
   apiMessage,
@@ -1159,7 +1491,7 @@ function VoteSetupView({
 }: {
   title: string;
   selectedPlaceKey: string;
-  selectedPlace: PlaceOption;
+  placeOptions: PlaceOption[];
   selectedMemberIds: Set<number>;
   members: VoteMember[];
   apiMessage: string | null;
@@ -1187,7 +1519,7 @@ function VoteSetupView({
           <span>👑 그룹장 설정</span>
         </div>
         <div className="vote-chip-row">
-          {PLACE_OPTIONS.map((place) => (
+          {placeOptions.map((place) => (
             <button
               className={place.key === selectedPlaceKey ? 'vote-chip vote-chip-selected' : 'vote-chip'}
               type="button"
@@ -1198,7 +1530,6 @@ function VoteSetupView({
             </button>
           ))}
         </div>
-        <p className="vote-muted-note">{selectedPlace.backendNote}</p>
       </section>
 
       <section className="vote-section vote-member-section">
@@ -1233,7 +1564,7 @@ function VoteSetupView({
           ) : (
             <div className="vote-empty-panel">
               <strong>참여자를 불러오지 못했어요</strong>
-              <p>그룹원 목록 API가 성공해야 투표를 생성할 수 있어요.</p>
+              <p>잠시 후 다시 시도해 주세요.</p>
             </div>
           )}
         </div>
@@ -1251,30 +1582,39 @@ function VoteSetupView({
 }
 
 function VoteStatusView({
-  activeVote,
   apiMessage,
   checkedMemberIds,
   hasSubmittedBallot,
+  hasSubmittedPreference,
+  isWaitingForPreferenceCompletion,
   isLoading,
   members,
   onBack,
   onNotify,
   onCancel,
+  onOpenHistory,
   onNext,
 }: {
-  activeVote: ActiveVote | null;
   apiMessage: string | null;
   checkedMemberIds: Set<number>;
   hasSubmittedBallot: boolean;
+  hasSubmittedPreference: boolean;
+  isWaitingForPreferenceCompletion: boolean;
   isLoading: boolean;
   members: VoteMember[];
   onBack: () => void;
   onNotify: () => void;
   onCancel: () => void;
+  onOpenHistory: () => void;
   onNext: () => void;
 }) {
   const completedCount = members.filter((member) => checkedMemberIds.has(member.memberId)).length;
   const progressWidth = members.length > 0 ? `${Math.min(100, (completedCount / members.length) * 100)}%` : '0%';
+  const statusLabel = getStatusViewLabel(hasSubmittedBallot, hasSubmittedPreference);
+  const primaryLabel = getStatusPrimaryLabel(hasSubmittedBallot, isWaitingForPreferenceCompletion, isLoading);
+  const progressLabel = hasSubmittedBallot
+    ? `호불호 투표 ${completedCount}/${members.length}명 · 결과는 전원 투표 후 자동 표시`
+    : `선호 제출 ${completedCount}/${members.length}명 · 후보는 전원 제출 후 자동 준비`;
 
   return (
     <>
@@ -1282,15 +1622,13 @@ function VoteStatusView({
       <section className="vote-status-card">
         <div className="vote-status-head">
           <strong>🗳️ 투표 현황</strong>
-          <span>{hasSubmittedBallot ? '● 내 투표 제출 완료' : '● 진행 중'}</span>
+          <span>{statusLabel}</span>
         </div>
         <div className="vote-progress-row">
           <div className="vote-progress-track">
             <div style={{ width: progressWidth }} />
           </div>
-          <small>
-            선호 제출 {completedCount}/{members.length}명 · 메뉴 확정은 전원 투표 후
-          </small>
+          <small>{progressLabel}</small>
         </div>
         <div className="vote-status-members">
           {members.map((member) => (
@@ -1311,16 +1649,93 @@ function VoteStatusView({
         </button>
       </div>
 
-      <div className="vote-api-note">
-        위치 투표 전용 API가 없어 "{activeVote?.placeLabel ?? '선택한 위치'}" 선택 상태는 프론트에서 관리합니다.
-      </div>
+      <button className="vote-history-button" type="button" onClick={onOpenHistory}>
+        <span aria-hidden="true">↺</span>
+        <span>
+          <strong>과거 내역 보기</strong>
+          <small>우리 그룹이 함께 먹었던 메뉴 기록</small>
+        </span>
+        <em aria-hidden="true">›</em>
+      </button>
+
       <ApiMessage message={apiMessage} />
 
       <div className="vote-bottom-actions">
         <button className="vote-primary-button" type="button" onClick={onNext}>
-          {hasSubmittedBallot ? '투표 목록으로' : '다음으로'}
+          {primaryLabel}
         </button>
       </div>
+    </>
+  );
+}
+
+function MealHistoryView({
+  items,
+  filter,
+  onBack,
+  onFilterChange,
+}: {
+  items: MealHistoryItem[];
+  filter: MealHistoryFilter;
+  onBack: () => void;
+  onFilterChange: (filter: MealHistoryFilter) => void;
+}) {
+  const filteredItems = getFilteredHistoryItems(items, filter);
+  const monthCount = items.filter((item) => isSameMonth(item.date, new Date())).length;
+  const weekCount = items.filter((item) => isSameWeek(item.date, new Date())).length;
+
+  return (
+    <>
+      <VoteNav title="과거 내역" onBack={onBack} />
+
+      <section className="vote-history-summary">
+        <strong>우리 그룹, 총 {items.length}번 함께 먹었어요</strong>
+        <span>
+          이번 달 {monthCount}회 <b aria-hidden="true">·</b> 이번 주 {weekCount}회
+        </span>
+      </section>
+
+      <div className="vote-history-filters" role="tablist" aria-label="과거 내역 필터">
+        {HISTORY_FILTERS.map((option) => (
+          <button
+            className={option.value === filter ? 'vote-history-filter vote-history-filter-selected' : 'vote-history-filter'}
+            type="button"
+            key={option.value}
+            onClick={() => onFilterChange(option.value)}
+            aria-selected={option.value === filter}
+            role="tab"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="vote-history-divider" />
+      <p className="vote-history-title">최근 식사 내역</p>
+
+      {filteredItems.length > 0 ? (
+        <div className="vote-meal-history-list">
+          {filteredItems.map((item) => (
+            <article className="vote-meal-history-card" key={item.id}>
+              <time>{item.dateLabel}</time>
+              <span>
+                <strong>{item.menuName}</strong>
+                <small>{item.subtitle}</small>
+              </span>
+              <em>{item.placeLabel}</em>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="vote-empty-panel vote-history-empty">
+          <strong>{getHistoryEmptyTitle(filter)}</strong>
+          <p>
+            {items.length === 0
+              ? '확정된 투표 결과가 생기면 이곳에 자동으로 쌓여요.'
+              : '다른 필터를 선택해 과거 식사 내역을 확인해 보세요.'}
+          </p>
+        </div>
+      )}
     </>
   );
 }
@@ -1760,7 +2175,7 @@ function FinalResultView({
       ) : !isLoading ? (
         <div className="vote-empty-panel">
           <strong>추천 식당이 없습니다</strong>
-          <p>백엔드 식당 검색 API 응답이 비어 있습니다.</p>
+          <p>다른 메뉴로 다시 확인해 보세요.</p>
         </div>
       ) : null}
       <ApiMessage message={apiMessage} />
@@ -1849,7 +2264,7 @@ function ScoreDetailView({
           <div className="vote-score-donut">{finalMenu.icon}</div>
           <span>
             <strong>{getCuisineLabel(finalMenu.cuisine)}</strong>
-            <small>메뉴 ID {finalMenu.menuId}</small>
+            <small>추천 메뉴</small>
           </span>
         </div>
         {members.map((member) => (
@@ -1863,11 +2278,6 @@ function ScoreDetailView({
         ))}
       </section>
 
-      <p className="vote-section-title">백엔드 연결 필요</p>
-      <section className="vote-reason-card">
-        <ReasonRow icon="✦" title="점수 상세 API 없음" text="개인별 점수, 추천 사유, 조건 충돌 여부는 현재 Swagger 응답에 없습니다." />
-        <ReasonRow icon="📍" title="식당 상세 API 없음" text="가격, 평점, 리뷰, 영업 상태는 카카오 로컬 응답에 없어 표시하지 않습니다." />
-      </section>
     </>
   );
 }
@@ -1946,18 +2356,6 @@ function InfoRow({ icon, label, value }: { icon: string; label: string; value: s
   );
 }
 
-function ReasonRow({ icon, title, text }: { icon: string; title: string; text: string }) {
-  return (
-    <div className="vote-reason-row">
-      <span>{icon}</span>
-      <div>
-        <strong>{title}</strong>
-        <p>{text}</p>
-      </div>
-    </div>
-  );
-}
-
 function StarField() {
   return (
     <div className="vote-stars" aria-hidden="true">
@@ -1998,6 +2396,82 @@ function toCandidateCard(menu: CandidateMenuResponse): CandidateCard {
   };
 }
 
+function getParticipantIdsForVoteRequest(participantIds: number[], members: VoteMember[]): number[] {
+  const ownerIds = new Set(members.filter((member) => member.role === 'OWNER').map((member) => member.memberId));
+
+  return participantIds.filter((participantId) => !ownerIds.has(participantId));
+}
+
+function toMealHistoryItems(votes: VoteSummary[]): MealHistoryItem[] {
+  return votes
+    .flatMap((vote) => {
+      if (!vote.resultMenu) {
+        return [];
+      }
+
+      const date = parseDate(vote.deadline);
+
+      return [
+        {
+          id: String(vote.voteId),
+          menuName: vote.resultMenu.name,
+          subtitle: getCuisineLabel(vote.resultMenu.cuisine),
+          placeLabel: vote.placeLabel,
+          date,
+          dateLabel: formatMealDate(date),
+          favorite: false,
+        },
+      ];
+    })
+    .sort((a, b) => getHistoryTimeValue(b.date) - getHistoryTimeValue(a.date));
+}
+
+function getFilteredHistoryItems(items: MealHistoryItem[], filter: MealHistoryFilter): MealHistoryItem[] {
+  if (filter === 'month') {
+    return items.filter((item) => isSameMonth(item.date, new Date()));
+  }
+
+  if (filter === 'favorite') {
+    return items.filter((item) => item.favorite);
+  }
+
+  return items;
+}
+
+function getHistoryEmptyTitle(filter: MealHistoryFilter): string {
+  if (filter === 'month') {
+    return '이번 달 식사 내역이 없어요';
+  }
+
+  if (filter === 'favorite') {
+    return '즐겨찾기한 내역이 없어요';
+  }
+
+  return '아직 과거 내역이 없어요';
+}
+
+function createPlaceOption(school: School, displayName = getSchoolLabel(school)): PlaceOption {
+  return {
+    key: SCHOOL_PLACE_KEYS[school],
+    label: displayName,
+    school,
+  };
+}
+
+function toPlaceOptions(schools: SchoolResponse[]): PlaceOption[] {
+  const schoolByCode = new Map(schools.map((school) => [school.code, school]));
+
+  return SCHOOL_ORDER.flatMap((school) => {
+    const schoolResponse = schoolByCode.get(school);
+
+    return schoolResponse ? [createPlaceOption(school)] : [];
+  });
+}
+
+function getDefaultPlaceKey(placeOptions: PlaceOption[]) {
+  return placeOptions.find((place) => place.school === 'HOOMOON')?.key ?? placeOptions[0]?.key ?? 'back';
+}
+
 function toVoteSummaryFromResponse(vote: VoteSummaryResponse): VoteSummary {
   const placeLabel = getSchoolLabel(vote.school);
 
@@ -2006,14 +2480,16 @@ function toVoteSummaryFromResponse(vote: VoteSummaryResponse): VoteSummary {
     voteId: vote.voteId,
     title: vote.title,
     status: getVoteStatusLabel(vote.status),
+    deadline: vote.deadline,
     meta: `${placeLabel} · 참여자 ${vote.participantCount}명`,
     placeLabel,
     school: vote.school,
     participantIds: [],
+    resultMenu: vote.resultMenu,
   };
 }
 
-function toVoteSummary(vote: VoteDetailResponse): VoteSummary {
+function toVoteSummary(vote: VoteDetailResponse, previous?: VoteSummary): VoteSummary {
   const placeLabel = getSchoolLabel(vote.school);
   const participantIds = vote.participants.map((participant) => participant.memberId);
 
@@ -2022,10 +2498,12 @@ function toVoteSummary(vote: VoteDetailResponse): VoteSummary {
     voteId: vote.voteId,
     title: vote.title,
     status: getVoteStatusLabel(vote.status),
+    deadline: previous?.deadline ?? '',
     meta: `${placeLabel} · 참여자 ${participantIds.length}명`,
     placeLabel,
     school: vote.school,
     participantIds,
+    resultMenu: vote.resultMenu,
   };
 }
 
@@ -2038,6 +2516,14 @@ function getCuisineLabel(cuisine: Cuisine) {
 }
 
 function getSchoolLabel(school: School) {
+  if (school === 'JEONGMOON') {
+    return '정문';
+  }
+
+  if (school === 'HOOMOON') {
+    return '후문';
+  }
+
   if (school === 'YEDAE') {
     return '예대';
   }
@@ -2046,7 +2532,128 @@ function getSchoolLabel(school: School) {
     return '상대';
   }
 
-  return '공대';
+  return '후문';
+}
+
+function parseDate(value: string): Date | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatBackendDateTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = padDatePart(date.getMonth() + 1);
+  const day = padDatePart(date.getDate());
+  const hours = padDatePart(date.getHours());
+  const minutes = padDatePart(date.getMinutes());
+  const seconds = padDatePart(date.getSeconds());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+function padDatePart(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function formatMealDate(date: Date | null): string {
+  if (!date) {
+    return '최근';
+  }
+
+  const now = new Date();
+
+  if (isSameDay(date, now)) {
+    return '오늘';
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (isSameDay(date, yesterday)) {
+    return '어제';
+  }
+
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function isSameDay(first: Date | null, second: Date): boolean {
+  if (!first) {
+    return false;
+  }
+
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
+function isSameMonth(date: Date | null, now: Date): boolean {
+  if (!date) {
+    return false;
+  }
+
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+}
+
+function isSameWeek(date: Date | null, now: Date): boolean {
+  if (!date) {
+    return false;
+  }
+
+  const weekStart = getWeekStart(now);
+  const nextWeekStart = new Date(weekStart);
+  nextWeekStart.setDate(weekStart.getDate() + 7);
+
+  return date >= weekStart && date < nextWeekStart;
+}
+
+function getWeekStart(date: Date): Date {
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() + mondayOffset);
+
+  return weekStart;
+}
+
+function getHistoryTimeValue(date: Date | null): number {
+  return date?.getTime() ?? 0;
+}
+
+function getStatusViewLabel(hasSubmittedBallot: boolean, hasSubmittedPreference: boolean): string {
+  if (hasSubmittedBallot) {
+    return '● 내 투표 제출 완료';
+  }
+
+  if (hasSubmittedPreference) {
+    return '● 내 선호 제출 완료';
+  }
+
+  return '● 진행 중';
+}
+
+function getStatusPrimaryLabel(
+  hasSubmittedBallot: boolean,
+  isWaitingForPreferenceCompletion: boolean,
+  isLoading: boolean,
+): string {
+  if (hasSubmittedBallot) {
+    return '투표 목록으로';
+  }
+
+  if (isWaitingForPreferenceCompletion) {
+    return isLoading ? '확인 중' : '상태 새로고침';
+  }
+
+  return '다음으로';
 }
 
 function getVoteStatusLabel(status: string) {
@@ -2081,5 +2688,9 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return '알 수 없는 오류가 발생했어요.';
+  return formatUnknownErrorMessage();
+}
+
+function hasApiErrorCode(error: unknown, code: number): boolean {
+  return error instanceof Error && error.message.startsWith(`오류 코드: ${code}`);
 }
