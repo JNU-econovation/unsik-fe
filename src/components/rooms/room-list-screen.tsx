@@ -1,8 +1,9 @@
 import type { CSSProperties, FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { formatUnknownErrorMessage } from '@/services/api-error';
 import type { BackendContext, GroupResponse } from '@/services/backend';
-import { createGroup, deleteGroup, joinGroup, listGroupMembers, listGroups } from '@/services/backend';
+import { createGroup, deleteGroup, joinGroup, listGroupMembers, listGroups, renameGroup } from '@/services/backend';
 
 import './room-list-screen.css';
 
@@ -28,10 +29,11 @@ type Room = {
   recommendation: string;
 };
 
-type MenuAction = 'copy' | 'delete';
+type MenuAction = 'copy' | 'rename' | 'delete';
 
 type DialogState =
   | { type: 'create' }
+  | { type: 'rename'; roomId: string }
   | { type: 'delete'; roomId: string };
 
 type RoomFormValues = {
@@ -47,6 +49,7 @@ const MEMBER_COLORS = ['#9e6bf5', '#f55947', '#4785f5', '#33c766', '#f5c829', '#
 
 const MENU_ITEMS: Array<{ action: MenuAction; icon: string; label: string; kind: 'normal' | 'danger' }> = [
   { action: 'copy', icon: '🔗', label: '코드 복사', kind: 'normal' },
+  { action: 'rename', icon: '✎', label: '이름 변경', kind: 'normal' },
   { action: 'delete', icon: '🗑️', label: '방 삭제', kind: 'danger' },
 ];
 
@@ -158,7 +161,7 @@ function getRoomEmptyTitle(hasMemberId: boolean, errorMessage: string | null): s
 
 function getRoomEmptyDescription(hasMemberId: boolean, errorMessage: string | null): string {
   if (!hasMemberId) {
-    return '카카오 로그인 후 백엔드에 저장된 그룹을 조회할 수 있어요';
+    return '카카오 로그인 후 참여 중인 그룹을 확인할 수 있어요';
   }
 
   if (errorMessage) {
@@ -173,7 +176,7 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return '알 수 없는 오류가 발생했어요.';
+  return formatUnknownErrorMessage();
 }
 
 export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onLogout, onOpenRoom, token }: RoomListScreenProps) {
@@ -185,7 +188,7 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
   const [hasLoadedRooms, setHasLoadedRooms] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readInitialInviteCode());
   const [isJoiningInvite, setIsJoiningInvite] = useState(false);
-  const [roomSourceLabel, setRoomSourceLabel] = useState('백엔드 API');
+  const [roomSourceLabel, setRoomSourceLabel] = useState('동기화됨');
   const [roomListError, setRoomListError] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const pendingInviteNoticeRef = useRef<string | null>(null);
@@ -239,7 +242,7 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         }
 
         setRooms(nextRooms);
-        setRoomSourceLabel('백엔드 API');
+        setRoomSourceLabel('동기화됨');
         setRoomListError(null);
       })
       .catch((error: unknown) => {
@@ -250,7 +253,7 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         setRooms([]);
         setRoomSourceLabel('오류');
         setRoomListError(getErrorMessage(error));
-        showToast('그룹 목록 API 호출에 실패했어요');
+        showToast(`그룹 목록을 불러오지 못했어요: ${getErrorMessage(error)}`);
       })
       .finally(() => {
         if (isCurrent) {
@@ -330,7 +333,7 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
 
           return [room, ...currentRooms];
         });
-        setRoomSourceLabel('백엔드 API');
+        setRoomSourceLabel('동기화됨');
         setRoomListError(null);
         clearPendingInviteCode();
         clearInviteCodeFromLocation();
@@ -416,13 +419,13 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
       const room = await groupToRoom(group, { memberId, token }, values.icon);
 
       setRooms((currentRooms) => [room, ...currentRooms]);
-      setRoomSourceLabel('백엔드 API');
+      setRoomSourceLabel('동기화됨');
       setRoomListError(null);
       setOpenMenuId(null);
       setDialog(null);
       showToast(`${room.name} 방을 만들었어요`);
     } catch (error) {
-      showToast(`그룹 생성 API 호출에 실패했어요: ${getErrorMessage(error)}`);
+      showToast(`방을 만들지 못했어요: ${getErrorMessage(error)}`);
     }
   };
 
@@ -430,14 +433,14 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
     const targetRoom = rooms.find((room) => room.id === roomId);
 
     if (!memberId || !targetRoom?.groupId) {
-      showToast('백엔드 그룹 정보가 없어 삭제할 수 없어요');
+      showToast('그룹 정보를 확인할 수 없어 삭제할 수 없어요');
       return;
     }
 
     try {
       await deleteGroup({ memberId, token }, targetRoom.groupId);
     } catch (error) {
-      showToast(`그룹 삭제 API 호출에 실패했어요: ${getErrorMessage(error)}`);
+      showToast(`방을 삭제하지 못했어요: ${getErrorMessage(error)}`);
       return;
     }
 
@@ -445,6 +448,44 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
     setOpenMenuId(null);
     setDialog(null);
     showToast(`${targetRoom?.name ?? '방'}을 삭제했어요`);
+  };
+
+  const handleRenameRoom = async (roomId: string, nextName: string) => {
+    const targetRoom = rooms.find((room) => room.id === roomId);
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      showToast('방 이름을 입력해 주세요');
+      return;
+    }
+
+    if (!memberId || !targetRoom?.groupId) {
+      showToast('그룹 정보를 확인할 수 없어 이름을 변경할 수 없어요');
+      return;
+    }
+
+    try {
+      const group = await renameGroup({ memberId, token }, targetRoom.groupId, trimmedName);
+
+      setRooms((currentRooms) =>
+        currentRooms.map((room) =>
+          room.id === roomId
+            ? {
+                ...room,
+                name: group.name,
+                code: group.inviteCode || room.code,
+                icon: readGroupIcon(group.description) ?? room.icon,
+                recommendation: group.description || room.recommendation,
+              }
+            : room,
+        ),
+      );
+      setOpenMenuId(null);
+      setDialog(null);
+      showToast(`${group.name}으로 이름을 변경했어요`);
+    } catch (error) {
+      showToast(`방 이름을 변경하지 못했어요: ${getErrorMessage(error)}`);
+    }
   };
 
   const handleJoinRoom = async () => {
@@ -470,10 +511,10 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
 
         return [room, ...currentRooms];
       });
-      setRoomSourceLabel('백엔드 API');
+      setRoomSourceLabel('동기화됨');
       showToast(`${room.name} 방에 참여했어요`);
-    } catch {
-      showToast('초대코드 참여 API 호출에 실패했어요');
+    } catch (error) {
+      showToast(`초대코드로 참여하지 못했어요: ${getErrorMessage(error)}`);
     }
   };
 
@@ -491,10 +532,18 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
       return;
     }
 
+    if (action === 'rename') {
+      setDialog({ type: 'rename', roomId: room.id });
+      return;
+    }
+
     setDialog({ type: 'delete', roomId: room.id });
   };
 
-  const activeRoom = dialog?.type === 'delete' ? rooms.find((room) => room.id === dialog.roomId) : null;
+  const activeRoom =
+    dialog?.type === 'delete' || dialog?.type === 'rename'
+      ? rooms.find((room) => room.id === dialog.roomId)
+      : null;
 
   return (
     <main className="room-list-screen">
@@ -577,10 +626,20 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         />
       ) : null}
 
+      {dialog?.type === 'rename' && activeRoom ? (
+        <RoomNameDialog
+          initialName={activeRoom.name}
+          onClose={closeDialog}
+          onSubmit={(name) => void handleRenameRoom(activeRoom.id, name)}
+          submitLabel="이름 변경"
+          title="방 이름 변경"
+        />
+      ) : null}
+
       {dialog?.type === 'delete' && activeRoom ? (
         <ConfirmDialog
           dangerLabel="삭제"
-          description={`${activeRoom.name} 방을 삭제할까요? 백엔드에서 그룹과 관련 데이터가 함께 삭제됩니다.`}
+          description={`${activeRoom.name} 방을 삭제할까요? 그룹과 관련된 투표 기록도 함께 삭제됩니다.`}
           onClose={closeDialog}
           onConfirm={() => void handleDeleteRoom(activeRoom.id)}
           title="방 삭제"
@@ -771,6 +830,74 @@ function RoomFormDialog({
             ))}
           </div>
         </div>
+
+        {error ? <p className="room-dialog-error">{error}</p> : null}
+
+        <div className="room-dialog-actions">
+          <button className="room-dialog-secondary" type="button" onClick={onClose}>
+            취소
+          </button>
+          <button className="room-dialog-primary" type="submit">
+            {submitLabel}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+type RoomNameDialogProps = {
+  title: string;
+  submitLabel: string;
+  initialName: string;
+  onClose: () => void;
+  onSubmit: (name: string) => void;
+};
+
+function RoomNameDialog({ title, submitLabel, initialName, onClose, onSubmit }: RoomNameDialogProps) {
+  const [name, setName] = useState(initialName);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!name.trim()) {
+      setError('방 이름을 입력해 주세요');
+      return;
+    }
+
+    onSubmit(name);
+  };
+
+  return (
+    <div className="room-dialog-backdrop">
+      <form
+        className="room-dialog"
+        onSubmit={handleSubmit}
+        aria-labelledby="room-name-dialog-title"
+        aria-modal="true"
+        role="dialog"
+      >
+        <div className="room-dialog-header">
+          <h2 id="room-name-dialog-title">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="닫기">
+            ×
+          </button>
+        </div>
+
+        <label className="room-field">
+          <span>방 이름</span>
+          <input
+            autoFocus
+            maxLength={18}
+            onChange={(event) => {
+              setName(event.target.value);
+              setError('');
+            }}
+            placeholder="예: 저녁 메뉴 회의"
+            value={name}
+          />
+        </label>
 
         {error ? <p className="room-dialog-error">{error}</p> : null}
 

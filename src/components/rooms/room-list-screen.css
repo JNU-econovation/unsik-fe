@@ -510,6 +510,7 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 18px;
+  overflow-wrap: anywhere;
   text-align: center;
   transform: translateX(-50%);
   animation: room-toast-in 180ms ease-out both;
@@ -646,6 +647,7 @@
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
+  overflow-wrap: anywhere;
 }
 
 .room-dialog-description {
