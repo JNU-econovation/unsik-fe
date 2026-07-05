@@ -1,3 +1,5 @@
+import { formatApiErrorMessage, getHttpErrorReason } from '@/services/api-error';
+
 export type AuthMember = {
   id: number;
   name: string;
@@ -26,27 +28,43 @@ export async function authenticateWithKakaoCode(code: string): Promise<AuthSessi
     code,
     redirectUri: getKakaoRedirectUri(),
   };
-  const response = await fetch(createApiUrl('/api/auth/kakao'), {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(createApiUrl('/api/auth/kakao'), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(
+      formatApiErrorMessage('NETWORK', '카카오 로그인 서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.'),
+    );
+  }
 
   if (!response.ok) {
     throw new Error(await readAuthErrorMessage(response));
   }
 
-  return parseAuthSession(await response.json());
+  let responseBody: unknown;
+
+  try {
+    responseBody = await response.json();
+  } catch {
+    throw new Error(formatApiErrorMessage('PARSE', '카카오 로그인 정보 형식이 올바르지 않아 처리할 수 없어요.'));
+  }
+
+  return parseAuthSession(responseBody);
 }
 
 export function createKakaoLoginUrl(): string {
   const clientId = import.meta.env.VITE_KAKAO_REST_API_KEY?.trim();
 
   if (!clientId) {
-    throw new Error('카카오 REST API 키가 설정되지 않았어요.');
+    throw new Error(formatApiErrorMessage('CLIENT_CONFIG', '카카오 로그인 설정이 필요해요.'));
   }
 
   const state = createOAuthState();
@@ -69,7 +87,7 @@ export function verifyKakaoOAuthState(returnedState: string | null): void {
   const expectedState = window.sessionStorage.getItem(KAKAO_OAUTH_STATE_STORAGE_KEY);
 
   if (!expectedState || !returnedState || expectedState !== returnedState) {
-    throw new Error('카카오 로그인 요청 정보를 확인할 수 없어요. 다시 시도해 주세요.');
+    throw new Error(formatApiErrorMessage('AUTH_STATE', '카카오 로그인 요청 정보를 확인할 수 없어요. 다시 시도해 주세요.'));
   }
 
   verifiedKakaoOAuthStates.add(returnedState);
@@ -128,7 +146,7 @@ function saveKakaoOAuthState(state: string): void {
   try {
     window.sessionStorage.setItem(KAKAO_OAUTH_STATE_STORAGE_KEY, state);
   } catch {
-    throw new Error('브라우저 저장소를 사용할 수 없어 카카오 로그인을 시작할 수 없어요.');
+    throw new Error(formatApiErrorMessage('STORAGE', '브라우저 저장소를 사용할 수 없어 카카오 로그인을 시작할 수 없어요.'));
   }
 }
 
@@ -148,35 +166,47 @@ function createOAuthState(): string {
 
 async function readAuthErrorMessage(response: Response): Promise<string> {
   const contentType = response.headers.get('content-type') ?? '';
+  const text = await response.text().catch(() => '');
+  let reason = '';
 
-  if (contentType.includes('application/json')) {
-    const body: unknown = await response.json().catch(() => null);
-
-    if (isRecord(body)) {
-      const message = body.message ?? body.error;
-
-      if (typeof message === 'string' && message.trim()) {
-        return message;
-      }
-    }
-
-    return `카카오 로그인 요청이 실패했어요. (${response.status})`;
+  if (contentType.includes('application/json') && text.trim()) {
+    reason = readAuthErrorReasonFromBody(parseJsonOrNull(text));
   }
 
-  const text = await response.text().catch(() => '');
+  if (!reason) {
+    reason = text.trim() || '카카오 로그인 요청이 실패했어요.';
+  }
 
-  return text.trim() || `카카오 로그인 요청이 실패했어요. (${response.status})`;
+  return formatApiErrorMessage(response.status, getHttpErrorReason(response.status, reason, response.statusText));
+}
+
+function readAuthErrorReasonFromBody(body: unknown): string {
+  if (!isRecord(body)) {
+    return '';
+  }
+
+  const message = body.message ?? body.error ?? body.detail ?? body.title;
+
+  return typeof message === 'string' && message.trim() ? message : '';
+}
+
+function parseJsonOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 function parseAuthSession(value: unknown): AuthSession {
   if (!isRecord(value) || typeof value.token !== 'string' || !isRecord(value.member)) {
-    throw new Error('카카오 로그인 응답 형식이 올바르지 않아요.');
+    throw new Error(formatApiErrorMessage('AUTH_RESPONSE', '카카오 로그인 정보 형식이 올바르지 않아요.'));
   }
 
   const { member } = value;
 
   if (typeof member.id !== 'number' || typeof member.name !== 'string') {
-    throw new Error('카카오 로그인 회원 정보 형식이 올바르지 않아요.');
+    throw new Error(formatApiErrorMessage('AUTH_RESPONSE', '카카오 로그인 회원 정보 형식이 올바르지 않아요.'));
   }
 
   return {

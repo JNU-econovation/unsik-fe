@@ -4,6 +4,7 @@ import { KakaoCallbackScreen } from '@/components/auth/kakao-callback-screen';
 import { MainScreen } from '@/components/main/main-screen';
 import { RoomListScreen } from '@/components/rooms/room-list-screen';
 import { VoteFlowScreen } from '@/components/votes/vote-flow-screen';
+import { formatApiErrorMessage, formatUnknownErrorMessage } from '@/services/api-error';
 import { AUTH_EXPIRED_EVENT } from '@/services/backend';
 import type { AuthSession } from '@/services/auth';
 import { clearAuthSession, createKakaoLoginUrl, KAKAO_CALLBACK_PATH, loadAuthSession } from '@/services/auth';
@@ -83,7 +84,7 @@ export function App() {
     const handleAuthExpired = () => {
       clearAuthSession();
       setAuthSession(null);
-      setLoginError('로그인 유효기간이 만료됐어요. 다시 로그인해 주세요.');
+      setLoginError(formatApiErrorMessage(401, '로그인 유효기간이 만료됐어요. 다시 로그인해 주세요.'));
       window.history.replaceState(null, '', '/main');
       setRoute({ type: 'main' });
     };
@@ -178,5 +179,5 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return '카카오 로그인을 시작할 수 없어요.';
+  return formatUnknownErrorMessage('카카오 로그인을 시작할 수 없어요.');
 }

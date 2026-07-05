@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatApiErrorMessage, formatUnknownErrorMessage } from '@/services/api-error';
 import type { AuthSession } from '@/services/auth';
 import {
   authenticateWithKakaoCode,
@@ -110,13 +111,14 @@ function exchangeKakaoCodeOnce(code: string): Promise<AuthSession> {
 }
 
 function getKakaoErrorMessage(params: URLSearchParams): string {
+  const code = params.get('error')?.trim() || 'KAKAO_OAUTH';
   const description = params.get('error_description');
 
   if (description) {
-    return `카카오 로그인이 완료되지 않았어요. ${description}`;
+    return formatApiErrorMessage(code, `카카오 로그인이 완료되지 않았어요. ${description}`);
   }
 
-  return '카카오 로그인이 완료되지 않았어요. 다시 시도해 주세요.';
+  return formatApiErrorMessage(code, '카카오 로그인이 완료되지 않았어요. 다시 시도해 주세요.');
 }
 
 function getErrorMessage(error: unknown): string {
@@ -124,5 +126,5 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return '카카오 로그인 중 문제가 발생했어요. 다시 시도해 주세요.';
+  return formatUnknownErrorMessage('카카오 로그인 중 문제가 발생했어요. 다시 시도해 주세요.');
 }

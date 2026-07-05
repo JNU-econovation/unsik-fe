@@ -1,3 +1,5 @@
+import { formatApiErrorMessage, getHttpErrorReason } from '@/services/api-error';
+
 export type BackendContext = {
   memberId?: number;
   token?: string;
@@ -15,7 +17,12 @@ export type Cuisine =
 
 export type Restriction = 'EGG' | 'MILK' | 'WHEAT' | 'SOY' | 'NUT' | 'CRUSTACEAN' | 'SEAFOOD';
 
-export type School = 'GONGDAE' | 'YEDAE' | 'SANGDAE';
+export type School = 'JEONGMOON' | 'HOOMOON' | 'YEDAE' | 'SANGDAE';
+
+export type SchoolResponse = {
+  code: School;
+  displayName: string;
+};
 
 export type GroupResponse = {
   id: number;
@@ -113,7 +120,7 @@ export type RestaurantSearchResponse = {
 };
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string;
 };
@@ -146,11 +153,19 @@ export async function requestBackend(path: `/${string}`, options: RequestOptions
     headers.set('Authorization', `Bearer ${options.token}`);
   }
 
-  const response = await fetch(createApiUrl(path), {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(createApiUrl(path), {
+      method: options.method ?? 'GET',
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch {
+    throw new Error(
+      formatApiErrorMessage('NETWORK', '서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.'),
+    );
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -164,13 +179,23 @@ export async function requestBackend(path: `/${string}`, options: RequestOptions
     return null;
   }
 
-  const text = await response.text();
+  let text: string;
+
+  try {
+    text = await response.text();
+  } catch {
+    throw new Error(formatApiErrorMessage('PARSE', '서버에서 받은 정보를 읽을 수 없어요.'));
+  }
 
   if (!text.trim()) {
     return null;
   }
 
-  return JSON.parse(text) as unknown;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new Error(formatApiErrorMessage('PARSE', '서버에서 받은 정보 형식이 올바르지 않아 처리할 수 없어요.'));
+  }
 }
 
 export async function listGroups(context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>) {
@@ -217,6 +242,20 @@ export async function deleteGroup(
   });
 }
 
+export async function renameGroup(
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  groupId: number,
+  name: string,
+) {
+  const value = await requestBackend(`/api/groups/${groupId}?memberId=${context.memberId}`, {
+    method: 'PATCH',
+    body: { name },
+    token: context.token,
+  });
+
+  return parseGroupResponse(value);
+}
+
 export async function listGroupMembers(
   context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
   groupId: number,
@@ -243,6 +282,14 @@ export async function listMenus() {
   const value = await requestBackend('/api/menus');
 
   return asArray(value).map(parseMenuResponse);
+}
+
+export async function listSchools() {
+  const value = await requestBackend('/api/schools');
+
+  return asArray(value)
+    .map(parseSchoolResponse)
+    .filter((school): school is SchoolResponse => school !== null);
 }
 
 export async function listGroupVotes(
@@ -362,22 +409,76 @@ export async function searchRestaurants(params: { menu?: string; voteId?: number
 
 async function readBackendError(response: Response): Promise<string> {
   const contentType = response.headers.get('content-type') ?? '';
+  const text = await response.text().catch(() => '');
+  let reason = '';
 
-  if (contentType.includes('application/json')) {
-    const body: unknown = await response.json().catch(() => null);
+  if (contentType.includes('application/json') && text.trim()) {
+    const body: unknown = parseJsonOrNull(text);
 
-    if (isRecord(body)) {
-      const message = body.message ?? body.error;
+    reason = readErrorReasonFromBody(body);
+  }
 
-      if (typeof message === 'string' && message.trim()) {
-        return message;
-      }
+  if (!reason) {
+    reason = text.trim();
+  }
+
+  return formatApiErrorMessage(response.status, getHttpErrorReason(response.status, reason, response.statusText));
+}
+
+function readErrorReasonFromBody(body: unknown): string {
+  if (!isRecord(body)) {
+    return '';
+  }
+
+  const message = body.message ?? body.detail ?? body.title;
+
+  if (typeof message === 'string' && message.trim()) {
+    return message;
+  }
+
+  const errors = body.errors ?? body.fieldErrors;
+
+  if (Array.isArray(errors)) {
+    const errorMessages = errors
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+
+        if (!isRecord(item)) {
+          return '';
+        }
+
+        const field = typeof item.field === 'string' ? `${item.field}: ` : '';
+        const defaultMessage = item.defaultMessage ?? item.message;
+
+        return typeof defaultMessage === 'string' ? `${field}${defaultMessage}` : '';
+      })
+      .filter((item) => item.trim());
+
+    if (errorMessages.length > 0) {
+      return errorMessages.join(', ');
     }
   }
 
-  const text = await response.text().catch(() => '');
+  const error = body.error;
+  const path = body.path;
 
-  return text.trim() || `백엔드 요청에 실패했어요. (${response.status})`;
+  if (typeof error === 'string' && error.trim()) {
+    const pathText = typeof path === 'string' && path.trim() ? ` (${path})` : '';
+
+    return `${error}${pathText}`;
+  }
+
+  return '';
+}
+
+function parseJsonOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 function parseGroupResponse(value: unknown): GroupResponse {
@@ -483,6 +584,20 @@ function parseMenuResponse(value: unknown): MenuResponse {
   };
 }
 
+function parseSchoolResponse(value: unknown): SchoolResponse | null {
+  const record = asRecord(value);
+  const code = parseOptionalSchool(record.code);
+
+  if (!code) {
+    return null;
+  }
+
+  return {
+    code,
+    displayName: readString(record.displayName, code),
+  };
+}
+
 function parseRestaurantSearchResponse(value: unknown): RestaurantSearchResponse {
   const record = asRecord(value);
   const meta = isRecord(record.meta) ? record.meta : {};
@@ -542,12 +657,16 @@ function isRestriction(value: unknown): value is Restriction {
   );
 }
 
-function parseSchool(value: unknown): School {
-  if (value === 'YEDAE' || value === 'SANGDAE') {
+function parseOptionalSchool(value: unknown): School | null {
+  if (value === 'JEONGMOON' || value === 'HOOMOON' || value === 'YEDAE' || value === 'SANGDAE') {
     return value;
   }
 
-  return 'GONGDAE';
+  return null;
+}
+
+function parseSchool(value: unknown): School {
+  return parseOptionalSchool(value) ?? 'HOOMOON';
 }
 
 function parseVoteStatus(value: unknown): VoteStatus {
