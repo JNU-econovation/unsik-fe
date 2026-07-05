@@ -10,16 +10,24 @@ opens a group vote flow at `/groups/:groupId/votes`.
 The group and vote flow supports creating a vote, choosing a meal location,
 selecting participants, submitting preferences, voting on candidate menus,
 showing a final menu, listing nearby restaurants, and opening restaurant/menu
-detail views. The UI follows the dark mobile Figma draft, adapted into plain
-React and CSS.
+detail views. The group condition screen links to a previous meal history view
+derived from closed group vote results. The UI follows the dark mobile Figma
+draft, adapted into plain React and CSS.
+
+After a member submits their own food preferences, the frontend returns them to
+the vote status screen if other participants are still pending. That screen
+polls pending preference members and retries recommendation automatically once
+everyone has submitted. After the current member submits candidate ballots, the
+same status screen polls vote detail until `resultMenu` appears and then opens
+the final result.
 
 Backend integration is partial because the current Swagger contract does not
 cover every screen state. Kakao auth, groups, group members, vote creation,
 preference submission, recommendation, ballot submission, vote detail, vote
 deletion, and restaurant search call the backend. Room list fallback data,
-recommendation fallback data, restaurant fallback data, previous meal history,
-fake ratings, fake reviews, and fake score details are not shown. Screens with
-missing backend contracts render empty or API-required states instead.
+recommendation fallback data, restaurant fallback data, fake ratings, fake
+reviews, and fake score details are not shown. Screens with missing backend
+contracts render empty or API-required states instead.
 
 ## Runtime
 
@@ -37,6 +45,9 @@ missing backend contracts render empty or API-required states instead.
 - `src/App.tsx`: top-level app composition and lightweight URL routing for
   `/main`, `/auth/kakao/callback`, `/grouplist`, and
   `/groups/:groupId/votes`
+- `src/services/api-error.ts`: shared Korean API error formatting that displays
+  an error code and reason for HTTP, network, parsing, auth, and client-state
+  failures
 - `src/services/auth.ts`: Kakao OAuth URL creation, `/api/auth/kakao` exchange,
   and browser auth-session storage
 - `src/services/backend.ts`: typed wrappers around the current Swagger REST API
@@ -106,6 +117,12 @@ When a backend API call returns `401`, `src/services/backend.ts` dispatches the
 `unsik:auth_session`, returning to `/main`, and asking the user to log in again.
 Token lifetime is still controlled by the backend JWT.
 
+API and auth failures shown to users are formatted in Korean as
+`오류 코드: ... · 이유: ...`. HTTP responses use the response status code, while
+network, parsing, Kakao OAuth state, browser storage, and unknown client-side
+exceptions use stable string codes such as `NETWORK`, `PARSE`, `AUTH_STATE`, or
+`UNKNOWN`.
+
 ## Invite Links
 
 Room invite links use `/grouplist?code=:inviteCode`. The room list screen reads
@@ -136,11 +153,16 @@ The app has installable PWA basics:
 - `POST /api/groups?memberId=...`: room creation
 - `POST /api/groups/join?memberId=...`: invite-code join
 - `DELETE /api/groups/{groupId}?memberId=...`: group deletion
+- `PATCH /api/groups/{groupId}?memberId=...`: room rename
 - `GET /api/groups/{groupId}/members?memberId=...`: vote setup participants
 - `GET /api/menus`: searchable menu catalog on the preference screen
+- `GET /api/schools`: supported vote location chips, with static fallback
 - `GET /api/groups/{groupId}/votes?memberId=...`: group-scoped vote summary
   list
-- `POST /api/groups/{groupId}/votes`: vote creation
+- `POST /api/groups/{groupId}/votes`: vote creation; the backend auto-includes
+  the OWNER, so the client omits OWNER ids from `participantMemberIds` when
+  creating votes and requires at least one non-OWNER participant before sending
+  the request. Vote deadlines are sent as local `yyyy-MM-ddTHH:mm:ss` strings.
 - `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines and
   allergy/restriction submission
 - `POST /api/votes/{voteId}/recommend?memberId=...`: candidate menus
@@ -156,19 +178,26 @@ The app has installable PWA basics:
 
 Available Vote endpoints not currently used:
 
+- `POST /api/votes/{voteId}/recommend/force?memberId=...`: Swagger marks this
+  as OWNER forced recommendation, so the frontend keeps the normal all-member
+  preference flow for now.
 - `POST /api/votes/{voteId}/close?memberId=...`: Swagger marks this as OWNER
   forced close, so the frontend does not call it from the normal ballot flow.
 - `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the
   group-scoped `GET /api/groups/{groupId}/votes?memberId=...` endpoint.
 Known contract gaps:
 
-- No group update endpoint exists, so room rename was removed. Icon and max
-  member selections are currently stored only in the group description text.
+- Group rename is backed by `PATCH /api/groups/{groupId}`. Icon and max member
+  selections are still stored only in the group description text because the
+  backend contract does not expose those as structured fields.
 - No location-vote endpoint exists. The selected location is sent only through
-  `school` on vote creation. Frontend labels `정문`, `후문`, and `상관없어`
-  map to `GONGDAE`; `상대` maps to `SANGDAE`; `예대` maps to `YEDAE`.
-- No previous meal history endpoint exists, so the previous-history panel is
-  not rendered.
+  `school` on vote creation. The frontend loads supported labels from
+  `GET /api/schools` and falls back to `JEONGMOON`, `HOOMOON`, `SANGDAE`, and
+  `YEDAE`.
+- No dedicated previous meal history endpoint exists. The previous-history
+  screen is rendered from `GET /api/groups/{groupId}/votes` entries that have a
+  `resultMenu`; restaurant names and favorite state are not available from the
+  backend contract.
 - `POST /api/votes/{voteId}/preferences` accepts disliked cuisines, not
   disliked menu IDs. When a user searches and excludes a specific menu from
   `GET /api/menus`, the frontend maps that menu to its cuisine and submits the
@@ -178,7 +207,8 @@ Known contract gaps:
 - No ballot progress/count endpoint exists. After a member submits
   `POST /api/votes/{voteId}/ballots`, the frontend can mark the current
   browser's member as submitted locally, but it still waits for
-  `GET /api/votes/{voteId}` to return `resultMenu` instead of forcing a close.
+  `GET /api/votes/{voteId}` polling to return `resultMenu` instead of forcing a
+  close.
 - Restaurant search returns Kakao Local documents but not rating, price, or
   reviews. Those fields are not rendered.
 - No menu score/reason endpoint exists. The menu detail screen shows only the
