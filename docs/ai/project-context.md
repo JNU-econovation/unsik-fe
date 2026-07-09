@@ -13,9 +13,7 @@ showing a final menu, listing nearby restaurants, and opening restaurant/menu
 detail views. The group condition screen links to a previous meal history view
 derived from closed group vote results. The main landing screen keeps its dark
 mystic style, while the post-login group and vote flows use a warm beige, dark
-brown, and gold-accent mobile style adapted into plain React and CSS. The app
-opts out of browser auto-darkening with `color-scheme: only light` so mobile OS
-dark mode does not distort the Figma-derived palette.
+brown, and gold-accent mobile style adapted into plain React and CSS.
 
 After a member submits their own food preferences, the frontend returns them to
 the vote status screen if other participants are still pending. That screen
