@@ -3,6 +3,7 @@
 }
 
 :root {
+  color-scheme: light;
   --unsik-bg: #e0d5c5;
   --unsik-bg-soft: #eadfce;
   --unsik-text: #221a14;
@@ -30,35 +31,33 @@
   --unsik-shadow-glow: 0 0 0 1px rgba(249, 199, 38, 0.16), 0 16px 36px rgba(249, 199, 38, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --unsik-bg: #07071a;
-    --unsik-bg-soft: #12103a;
-    --unsik-text: #ffffff;
-    --unsik-text-soft: #c7c7e5;
-    --unsik-muted: #8f8fbd;
-    --unsik-surface: #1d1b3d;
-    --unsik-surface-deep: #151332;
-    --unsik-surface-low: #0f0e28;
-    --unsik-surface-raised: #282043;
-    --unsik-border-muted: rgba(199, 199, 229, 0.2);
-    --unsik-border-strong: #3d3d66;
-    --unsik-gold: #f5c829;
-    --unsik-gold-bright: #fad103;
-    --unsik-gold-map: #fad103;
-    --unsik-rust: #f5c829;
-    --unsik-amber-text: #f5c829;
-    --unsik-green: #33c766;
-    --unsik-danger: #f55947;
-    --unsik-danger-text: #ffb6ad;
-    --unsik-ink-on-dark: #ffffff;
-    --unsik-muted-on-dark: #8f8fbd;
-    --unsik-soft-on-dark: #c7c7e5;
-    --unsik-focus: #f5c829;
-    --unsik-shadow-card: 0 12px 28px rgba(0, 0, 0, 0.34);
-    --unsik-shadow-glow: 0 0 0 1px rgba(245, 200, 41, 0.18), 0 16px 38px rgba(245, 200, 41, 0.14);
-  }
+:root[data-unsik-theme='dark'] {
+  color-scheme: dark;
+  --unsik-bg: #07071a;
+  --unsik-bg-soft: #12103a;
+  --unsik-text: #ffffff;
+  --unsik-text-soft: #c7c7e5;
+  --unsik-muted: #8f8fbd;
+  --unsik-surface: #1d1b3d;
+  --unsik-surface-deep: #151332;
+  --unsik-surface-low: #0f0e28;
+  --unsik-surface-raised: #282043;
+  --unsik-border-muted: rgba(199, 199, 229, 0.2);
+  --unsik-border-strong: #3d3d66;
+  --unsik-gold: #f5c829;
+  --unsik-gold-bright: #fad103;
+  --unsik-gold-map: #fad103;
+  --unsik-rust: #f5c829;
+  --unsik-amber-text: #f5c829;
+  --unsik-green: #33c766;
+  --unsik-danger: #f55947;
+  --unsik-danger-text: #ffb6ad;
+  --unsik-ink-on-dark: #ffffff;
+  --unsik-muted-on-dark: #8f8fbd;
+  --unsik-soft-on-dark: #c7c7e5;
+  --unsik-focus: #f5c829;
+  --unsik-shadow-card: 0 12px 28px rgba(0, 0, 0, 0.34);
+  --unsik-shadow-glow: 0 0 0 1px rgba(245, 200, 41, 0.18), 0 16px 38px rgba(245, 200, 41, 0.14);
 }
 
 html {
@@ -86,6 +85,65 @@ body {
 
 button {
   font: inherit;
+}
+
+.theme-mode-toggle {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 50;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(122, 74, 14, 0.34);
+  border-radius: 14px;
+  background: rgba(249, 199, 38, 0.92);
+  box-shadow: 0 10px 22px rgba(34, 26, 20, 0.2);
+  color: #221a14;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-mode-toggle:hover {
+  transform: translateY(-1px);
+  background: #ffd955;
+  box-shadow: 0 14px 28px rgba(34, 26, 20, 0.24);
+}
+
+.theme-mode-toggle:focus-visible {
+  outline: 2px solid var(--unsik-focus);
+  outline-offset: 3px;
+}
+
+.theme-mode-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+:root[data-unsik-theme='dark'] .theme-mode-toggle {
+  border-color: rgba(245, 200, 41, 0.46);
+  background: rgba(29, 27, 61, 0.94);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(245, 200, 41, 0.12);
+  color: #f5c829;
+}
+
+:root[data-unsik-theme='dark'] .theme-mode-toggle:hover {
+  border-color: rgba(245, 200, 41, 0.72);
+  background: #282043;
 }
 
 #root {

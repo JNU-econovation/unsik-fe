@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 
 import { KakaoCallbackScreen } from '@/components/auth/kakao-callback-screen';
 import { MainScreen } from '@/components/main/main-screen';
@@ -16,6 +16,13 @@ type AppRoute =
   | { type: 'groupVotes'; groupId: string };
 
 const DEFAULT_ROUTE: AppRoute = { type: 'main' };
+const THEME_MODE_STORAGE_KEY = 'unsik:theme_mode';
+const THEME_MODE_COLORS = {
+  dark: '#12103a',
+  light: '#e0d5c5',
+} as const;
+
+type ThemeMode = keyof typeof THEME_MODE_COLORS;
 
 function getAppRoute(pathname: string): AppRoute {
   if (pathname === KAKAO_CALLBACK_PATH) {
@@ -59,6 +66,7 @@ export function App() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => loadAuthSession());
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
 
   useEffect(() => {
     const normalizedRoute = getAppRoute(window.location.pathname);
@@ -95,6 +103,11 @@ export function App() {
       window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    applyThemeMode(themeMode);
+    saveThemeMode(themeMode);
+  }, [themeMode]);
 
   const navigate = useCallback((nextRoute: AppRoute) => {
     const nextPath = getRoutePath(nextRoute);
@@ -137,17 +150,21 @@ export function App() {
     setRoute({ type: 'main' });
   }, [authSession, isLoggingOut]);
 
+  const handleToggleThemeMode = useCallback(() => {
+    setThemeMode((currentThemeMode) => (currentThemeMode === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  let screen: ReactNode;
+
   if (route.type === 'authCallback') {
-    return (
+    screen = (
       <KakaoCallbackScreen
         onAuthenticated={handleAuthenticated}
         onBackToMain={() => navigate({ type: 'main' })}
       />
     );
-  }
-
-  if (route.type === 'groups') {
-    return (
+  } else if (route.type === 'groups') {
+    screen = (
       <RoomListScreen
         memberId={authSession?.member.id}
         memberName={authSession?.member.name}
@@ -157,10 +174,8 @@ export function App() {
         token={authSession?.token}
       />
     );
-  }
-
-  if (route.type === 'groupVotes') {
-    return (
+  } else if (route.type === 'groupVotes') {
+    screen = (
       <VoteFlowScreen
         groupId={route.groupId}
         memberId={authSession?.member.id}
@@ -169,9 +184,82 @@ export function App() {
         token={authSession?.token}
       />
     );
+  } else {
+    screen = <MainScreen loginError={loginError} onKakaoLogin={handleKakaoLogin} />;
   }
 
-  return <MainScreen loginError={loginError} onKakaoLogin={handleKakaoLogin} />;
+  return (
+    <>
+      {screen}
+      {route.type === 'groups' || route.type === 'groupVotes' ? (
+        <ThemeModeToggle mode={themeMode} onToggle={handleToggleThemeMode} />
+      ) : null}
+    </>
+  );
+}
+
+type ThemeModeToggleProps = {
+  mode: ThemeMode;
+  onToggle: () => void;
+};
+
+function ThemeModeToggle({ mode, onToggle }: ThemeModeToggleProps) {
+  const isDarkMode = mode === 'dark';
+
+  return (
+    <button
+      aria-label={isDarkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
+      aria-pressed={isDarkMode}
+      className="theme-mode-toggle"
+      onClick={onToggle}
+      type="button"
+    >
+      {isDarkMode ? (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M20.4 13.7A8.2 8.2 0 0 1 10.3 3.6a8.6 8.6 0 1 0 10.1 10.1Z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function loadThemeMode(): ThemeMode {
+  try {
+    return window.localStorage.getItem(THEME_MODE_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+function saveThemeMode(themeMode: ThemeMode) {
+  try {
+    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
+  } catch {
+    // Ignore storage errors; the visual theme can still apply for this session.
+  }
+}
+
+function applyThemeMode(themeMode: ThemeMode) {
+  document.documentElement.dataset.unsikTheme = themeMode;
+  document.documentElement.style.colorScheme = themeMode;
+
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+
+  if (themeColor) {
+    themeColor.content = THEME_MODE_COLORS[themeMode];
+  }
 }
 
 function getErrorMessage(error: unknown): string {

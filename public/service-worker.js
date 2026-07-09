@@ -1,6 +1,6 @@
 /* global caches, fetch, self, URL, Response */
 
-const CACHE_NAME = 'unsik-pwa-v4';
+const CACHE_NAME = 'unsik-pwa-v5';
 const APP_SHELL_URLS = [
   '/',
   '/main',

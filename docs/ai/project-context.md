@@ -13,9 +13,10 @@ showing a final menu, listing nearby restaurants, and opening restaurant/menu
 detail views. The group condition screen links to a previous meal history view
 derived from closed group vote results. The main landing screen keeps its dark
 mystic style, while the post-login group and vote flows use a warm beige, dark
-brown, and gold-accent mobile style adapted into plain React and CSS. When the
-browser reports OS dark mode, the post-login screens switch to explicit dark
-purple, navy, and gold overrides instead of relying on browser auto-darkening.
+brown, and gold-accent mobile style adapted into plain React and CSS by default.
+The app does not follow OS dark mode automatically; a floating theme button
+stores `unsik:theme_mode` and switches `html[data-unsik-theme='dark']` to an
+explicit dark purple, navy, and gold theme.
 
 After a member submits their own food preferences, the frontend returns them to
 the vote status screen if other participants are still pending. That screen
