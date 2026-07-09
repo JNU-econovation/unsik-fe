@@ -1271,3 +1271,25 @@
     background: rgba(245, 200, 41, 0.12);
     color: #f5c829;
   }
+
+:root[data-unsik-theme='dark'] .room-card,
+:root[data-unsik-theme='dark'] .room-card-featured,
+:root[data-unsik-theme='dark'] .room-card-open {
+  border-color: rgba(245, 200, 41, 0.72);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(245, 200, 41, 0.12);
+}
+
+:root[data-unsik-theme='dark'] .room-enter-button,
+:root[data-unsik-theme='dark'] .room-card-featured .room-enter-button {
+  border-color: rgba(245, 200, 41, 0.82);
+  background: #332908;
+  color: #f5c829;
+}
+
+:root[data-unsik-theme='dark'] .room-card:hover,
+:root[data-unsik-theme='dark'] .room-enter-button:hover,
+:root[data-unsik-theme='dark'] .room-enter-button:focus-visible {
+  border-color: #f5c829;
+}
