@@ -1240,11 +1240,11 @@
 .vote-cuisine-selected {
   border-width: 2px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--vote-accent) 28%, transparent), transparent 66%),
+    linear-gradient(135deg, var(--vote-accent-tint, rgba(249, 199, 38, 0.24)), transparent 66%),
     #151332;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--vote-accent) 60%, transparent),
-    0 10px 24px color-mix(in srgb, var(--vote-accent) 18%, transparent);
+    inset 0 0 0 1px var(--vote-accent-ring, rgba(249, 199, 38, 0.6)),
+    0 10px 24px var(--vote-accent-glow, rgba(249, 199, 38, 0.18));
 }
 
 .vote-cuisine span {
@@ -1271,7 +1271,7 @@
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--vote-accent) 65%, transparent);
+  border: 1px solid var(--vote-accent-ring, rgba(249, 199, 38, 0.65));
   border-radius: 50%;
   background: #07071a;
   color: var(--vote-accent);
@@ -2439,12 +2439,12 @@
 
 .vote-cuisine-selected {
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--vote-accent) 18%, transparent), transparent 62%),
-    color-mix(in srgb, var(--vote-accent) 16%, var(--unsik-bg));
+    linear-gradient(135deg, var(--vote-accent-tint, rgba(249, 199, 38, 0.18)), transparent 62%),
+    rgba(36, 29, 22, 0.96);
   color: var(--vote-accent);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--vote-accent) 58%, transparent),
-    0 10px 24px color-mix(in srgb, var(--vote-accent) 16%, transparent);
+    inset 0 0 0 1px var(--vote-accent-ring, rgba(249, 199, 38, 0.58)),
+    0 10px 24px var(--vote-accent-glow, rgba(249, 199, 38, 0.16));
 }
 
 .vote-cuisine-selected small {
@@ -2452,7 +2452,7 @@
 }
 
 .vote-cuisine b {
-  background: color-mix(in srgb, var(--vote-accent) 22%, transparent);
+  background: var(--vote-accent-halo, rgba(249, 199, 38, 0.22));
 }
 
 .vote-menu-card,
@@ -2711,12 +2711,12 @@
   border-width: 2px;
   border-color: var(--vote-accent);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--vote-accent) 28%, transparent), transparent 54%),
+    linear-gradient(135deg, var(--vote-accent-tint, rgba(249, 199, 38, 0.28)), transparent 54%),
     linear-gradient(180deg, rgba(43, 33, 25, 0.98), rgba(24, 18, 12, 0.98));
   color: #ffffff;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--vote-accent) 36%, transparent),
-    0 12px 26px color-mix(in srgb, var(--vote-accent) 22%, transparent),
+    0 0 0 1px var(--vote-accent-ring, rgba(249, 199, 38, 0.36)),
+    0 12px 26px var(--vote-accent-glow, rgba(249, 199, 38, 0.22)),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
@@ -2732,10 +2732,10 @@
 }
 
 .vote-cuisine-selected b {
-  border-color: color-mix(in srgb, var(--vote-accent) 78%, white);
+  border-color: var(--vote-accent-ring, rgba(249, 199, 38, 0.78));
   background: var(--vote-accent);
   color: #171009;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vote-accent) 18%, transparent);
+  box-shadow: 0 0 0 3px var(--vote-accent-halo, rgba(249, 199, 38, 0.18));
 }
 
 .vote-chip-selected,
@@ -2773,14 +2773,12 @@
   border-color: rgba(122, 74, 14, 0.42);
 }
 
-@supports (color: color-mix(in srgb, red, white)) {
-  .vote-primary-button:hover,
-  .vote-primary-link:hover {
-    background: color-mix(in srgb, var(--unsik-gold) 86%, white);
-  }
+.vote-primary-button:hover,
+.vote-primary-link:hover {
+  background: #ffd955;
+}
 
-  .vote-secondary-button:hover,
-  .vote-chip:hover {
-    border-color: color-mix(in srgb, var(--unsik-gold) 52%, transparent);
-  }
+.vote-secondary-button:hover,
+.vote-chip:hover {
+  border-color: rgba(249, 199, 38, 0.52);
 }

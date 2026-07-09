@@ -169,6 +169,65 @@ const CUISINE_OPTIONS: Array<{
   { cuisine: 'WESTERN', label: '양식', icon: '🍝', description: '파스타 · 스테이크 · 샐러드', color: '#4dd0e1' },
 ];
 
+const CUISINE_STYLE_TOKENS: Record<
+  Cuisine,
+  {
+    tint: string;
+    ring: string;
+    glow: string;
+    halo: string;
+  }
+> = {
+  FASTFOOD: {
+    tint: 'rgba(245, 131, 74, 0.32)',
+    ring: 'rgba(245, 131, 74, 0.72)',
+    glow: 'rgba(245, 131, 74, 0.24)',
+    halo: 'rgba(245, 131, 74, 0.18)',
+  },
+  KOREAN: {
+    tint: 'rgba(158, 133, 245, 0.34)',
+    ring: 'rgba(158, 133, 245, 0.74)',
+    glow: 'rgba(158, 133, 245, 0.26)',
+    halo: 'rgba(158, 133, 245, 0.2)',
+  },
+  STEW_SOUP: {
+    tint: 'rgba(46, 214, 163, 0.3)',
+    ring: 'rgba(46, 214, 163, 0.7)',
+    glow: 'rgba(46, 214, 163, 0.22)',
+    halo: 'rgba(46, 214, 163, 0.18)',
+  },
+  MEAT: {
+    tint: 'rgba(240, 120, 64, 0.32)',
+    ring: 'rgba(240, 120, 64, 0.72)',
+    glow: 'rgba(240, 120, 64, 0.24)',
+    halo: 'rgba(240, 120, 64, 0.18)',
+  },
+  ASIAN: {
+    tint: 'rgba(255, 179, 71, 0.3)',
+    ring: 'rgba(255, 179, 71, 0.72)',
+    glow: 'rgba(255, 179, 71, 0.24)',
+    halo: 'rgba(255, 179, 71, 0.18)',
+  },
+  CHINESE: {
+    tint: 'rgba(215, 131, 255, 0.34)',
+    ring: 'rgba(215, 131, 255, 0.74)',
+    glow: 'rgba(215, 131, 255, 0.26)',
+    halo: 'rgba(215, 131, 255, 0.2)',
+  },
+  WESTERN: {
+    tint: 'rgba(77, 208, 225, 0.3)',
+    ring: 'rgba(77, 208, 225, 0.72)',
+    glow: 'rgba(77, 208, 225, 0.22)',
+    halo: 'rgba(77, 208, 225, 0.18)',
+  },
+  JAPANESE: {
+    tint: 'rgba(249, 199, 38, 0.3)',
+    ring: 'rgba(249, 199, 38, 0.72)',
+    glow: 'rgba(249, 199, 38, 0.24)',
+    halo: 'rgba(249, 199, 38, 0.18)',
+  },
+};
+
 const RESTRICTION_OPTIONS: Array<{
   restriction?: Restriction;
   label: string;
@@ -1945,16 +2004,25 @@ function PreferenceView({
         </div>
       ) : null}
 
-      <div className="vote-cuisine-grid">
-        {CUISINE_OPTIONS.map((option) => {
-          const isSelected = dislikedCuisines.has(option.cuisine);
+        <div className="vote-cuisine-grid">
+          {CUISINE_OPTIONS.map((option) => {
+            const isSelected = dislikedCuisines.has(option.cuisine);
+            const styleTokens = CUISINE_STYLE_TOKENS[option.cuisine];
 
-          return (
-            <button
-              className={isSelected ? 'vote-cuisine vote-cuisine-selected' : 'vote-cuisine'}
-              style={{ '--vote-accent': option.color } as CSSProperties}
-              type="button"
-              key={option.cuisine}
+            return (
+              <button
+                className={isSelected ? 'vote-cuisine vote-cuisine-selected' : 'vote-cuisine'}
+                style={
+                  {
+                    '--vote-accent': option.color,
+                    '--vote-accent-tint': styleTokens.tint,
+                    '--vote-accent-ring': styleTokens.ring,
+                    '--vote-accent-glow': styleTokens.glow,
+                    '--vote-accent-halo': styleTokens.halo,
+                  } as CSSProperties
+                }
+                type="button"
+                key={option.cuisine}
               onClick={() => onToggleCuisine(option.cuisine)}
               aria-pressed={isSelected}
             >
