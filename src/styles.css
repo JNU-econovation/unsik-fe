@@ -2,9 +2,37 @@
   box-sizing: border-box;
 }
 
+:root {
+  --unsik-bg: #e0d5c5;
+  --unsik-bg-soft: #eadfce;
+  --unsik-text: #221a14;
+  --unsik-text-soft: #3a2e23;
+  --unsik-muted: #5c4d3f;
+  --unsik-surface: #241d16;
+  --unsik-surface-deep: #1b140d;
+  --unsik-surface-low: #171009;
+  --unsik-surface-raised: #2e251d;
+  --unsik-border-muted: rgba(136, 136, 136, 0.2);
+  --unsik-border-strong: #3d362f;
+  --unsik-gold: #f9c726;
+  --unsik-gold-bright: #fae003;
+  --unsik-gold-map: #fad103;
+  --unsik-rust: #9c3d0f;
+  --unsik-amber-text: #7a4a0e;
+  --unsik-green: #33c766;
+  --unsik-danger: #f55947;
+  --unsik-danger-text: #942f24;
+  --unsik-ink-on-dark: #ffffff;
+  --unsik-muted-on-dark: #888888;
+  --unsik-soft-on-dark: #cccccc;
+  --unsik-focus: #fff2a8;
+  --unsik-shadow-card: 0 14px 34px rgba(36, 29, 22, 0.22);
+  --unsik-shadow-glow: 0 0 0 1px rgba(249, 199, 38, 0.16), 0 16px 36px rgba(249, 199, 38, 0.2);
+}
+
 html {
   min-height: 100%;
-  background: #12103a;
+  background: var(--unsik-bg);
 }
 
 body {
@@ -12,8 +40,8 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-x: hidden;
-  background: #12103a;
-  color: #ffffff;
+  background: var(--unsik-bg);
+  color: var(--unsik-text);
   font-family:
     system-ui,
     -apple-system,

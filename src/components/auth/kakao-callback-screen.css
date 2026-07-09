@@ -5,8 +5,8 @@
   min-height: 100dvh;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 30%, rgba(254, 229, 0, 0.14), transparent 28%),
-    #12103a;
+    linear-gradient(180deg, rgba(255, 244, 215, 0.34), transparent 42%),
+    var(--unsik-bg);
 }
 
 .kakao-callback-panel {
@@ -24,9 +24,9 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: #fee500;
-  box-shadow: 0 8px 24px rgba(254, 229, 0, 0.18);
-  color: #191919;
+  background: var(--unsik-gold-bright);
+  box-shadow: 0 12px 28px rgba(249, 199, 38, 0.26);
+  color: var(--unsik-text);
   font-size: 26px;
   font-weight: 800;
   line-height: 1;
@@ -36,8 +36,8 @@
   display: block;
   width: 22px;
   height: 22px;
-  border: 3px solid rgba(25, 25, 25, 0.26);
-  border-top-color: #191919;
+  border: 3px solid rgba(34, 26, 20, 0.26);
+  border-top-color: var(--unsik-text);
   border-radius: 50%;
   content: '';
   animation: kakao-callback-spin 820ms linear infinite;
@@ -45,7 +45,7 @@
 
 .kakao-callback-panel h1 {
   margin: 22px 0 0;
-  color: #ffffff;
+  color: var(--unsik-text);
   font-size: 28px;
   font-weight: 800;
   line-height: 36px;
@@ -55,7 +55,7 @@
 .kakao-callback-panel p {
   max-width: 300px;
   margin: 10px 0 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--unsik-muted);
   font-size: 15px;
   line-height: 23px;
   letter-spacing: 0;
@@ -63,18 +63,25 @@
 }
 
 .kakao-callback-button {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   min-height: 52px;
   margin-top: 28px;
   border: 0;
   border-radius: 26px;
-  background: #fee500;
-  color: #191919;
+  background: var(--unsik-gold);
+  color: var(--unsik-text);
   cursor: pointer;
   font-size: 16px;
   font-weight: 800;
   line-height: 22px;
   -webkit-tap-highlight-color: transparent;
+}
+
+.kakao-callback-button::before {
+  display: none;
+  content: none;
 }
 
 .kakao-callback-button:active {
@@ -83,7 +90,7 @@
 }
 
 .kakao-callback-button:focus-visible {
-  outline: 2px solid #fff7c9;
+  outline: 2px solid var(--unsik-focus);
   outline-offset: 4px;
 }
 
@@ -101,7 +108,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #fee500;
+  background: var(--unsik-gold);
+  box-shadow: 0 0 14px rgba(249, 199, 38, 0.45);
   animation: kakao-callback-pulse 900ms ease-in-out infinite;
 }
 

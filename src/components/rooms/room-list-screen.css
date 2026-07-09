@@ -826,3 +826,302 @@
     transform: scale(1.18);
   }
 }
+
+.room-list-screen {
+  background:
+    linear-gradient(180deg, rgba(255, 245, 220, 0.28), transparent 38%),
+    var(--unsik-bg);
+  color: var(--unsik-text);
+}
+
+.room-list-canvas::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      transparent 0 34px,
+      rgba(140, 111, 78, 0.035) 35px 36px,
+      transparent 37px 86px
+    );
+  opacity: 0.74;
+}
+
+.room-list-star {
+  color: rgba(140, 111, 78, 0.42);
+  text-shadow: 0 0 12px rgba(249, 199, 38, 0.24);
+}
+
+.room-list-nav-title,
+.room-list-header h1,
+.room-list-section-label {
+  color: var(--unsik-text-soft);
+}
+
+.room-list-header h1 {
+  color: var(--unsik-text);
+}
+
+.room-list-header p,
+.room-list-section-label,
+.room-member-count,
+.room-recommendation {
+  color: var(--unsik-muted);
+}
+
+.room-logout-button,
+.room-list-join,
+.room-dialog-secondary,
+.room-dialog-header button,
+.room-field input,
+.room-icon-option,
+.room-member-option {
+  border-color: rgba(61, 54, 47, 0.72);
+  background: var(--unsik-surface);
+  color: var(--unsik-soft-on-dark);
+}
+
+.room-logout-button:hover,
+.room-list-join:hover {
+  border-color: rgba(249, 199, 38, 0.54);
+  color: var(--unsik-gold);
+  box-shadow: 0 0 18px rgba(249, 199, 38, 0.14);
+}
+
+.room-card {
+  overflow: hidden;
+  border-color: rgba(136, 136, 136, 0.22);
+  background: linear-gradient(180deg, var(--unsik-surface), var(--unsik-surface-deep));
+  box-shadow: var(--unsik-shadow-card);
+}
+
+.room-card::before,
+.room-list-create::before,
+.room-dialog-primary::before {
+  position: absolute;
+  inset: -120% -80%;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.16) 43%,
+    rgba(255, 238, 156, 0.38) 49%,
+    transparent 58%
+  );
+  opacity: 0;
+  transform: translateX(-36%) rotate(8deg);
+}
+
+.room-card-featured {
+  border-color: rgba(249, 199, 38, 0.72);
+  background:
+    linear-gradient(135deg, rgba(249, 199, 38, 0.08), transparent 38%),
+    var(--unsik-surface);
+  box-shadow: var(--unsik-shadow-glow);
+}
+
+.room-icon,
+.room-menu-button {
+  border-color: rgba(204, 204, 204, 0.22);
+  background: var(--unsik-surface);
+}
+
+.room-card-featured .room-icon {
+  border-color: rgba(249, 199, 38, 0.34);
+  box-shadow: inset 0 0 18px rgba(249, 199, 38, 0.05);
+}
+
+.room-card-copy h2,
+.room-empty-state p,
+.room-dialog-header h2 {
+  color: var(--unsik-ink-on-dark);
+}
+
+.room-card-copy p,
+.room-empty-state span,
+.room-dialog-description,
+.room-field > span {
+  color: var(--unsik-muted-on-dark);
+}
+
+.room-card-featured .room-card-copy p {
+  color: var(--unsik-soft-on-dark);
+}
+
+.room-enter-button {
+  border-color: rgba(136, 136, 136, 0.28);
+  background: var(--unsik-surface);
+  color: var(--unsik-muted-on-dark);
+}
+
+.room-card-featured .room-enter-button {
+  border-color: rgba(249, 199, 38, 0.72);
+  background: rgba(51, 41, 8, 0.9);
+  color: var(--unsik-gold);
+}
+
+.room-menu-button span {
+  background: var(--unsik-soft-on-dark);
+}
+
+.room-menu-button[aria-expanded='true'] {
+  border-color: rgba(249, 199, 38, 0.54);
+  background: var(--unsik-surface-raised);
+}
+
+.room-card-divider,
+.room-menu-item {
+  border-color: rgba(204, 204, 204, 0.1);
+}
+
+.room-card-divider {
+  background: rgba(204, 204, 204, 0.1);
+}
+
+.room-menu-popover,
+.room-dialog,
+.room-toast,
+.room-empty-state {
+  border-color: rgba(61, 54, 47, 0.95);
+  background: rgba(36, 29, 22, 0.96);
+  color: var(--unsik-soft-on-dark);
+}
+
+.room-menu-item {
+  color: var(--unsik-soft-on-dark);
+}
+
+.room-menu-item:hover {
+  background: rgba(249, 199, 38, 0.08);
+}
+
+.room-menu-item-danger,
+.room-dialog-error {
+  color: var(--unsik-danger);
+}
+
+.room-list-hint {
+  color: rgba(92, 77, 63, 0.48);
+}
+
+.room-list-create,
+.room-dialog-primary {
+  position: relative;
+  overflow: hidden;
+  background: var(--unsik-gold);
+  color: var(--unsik-text);
+  box-shadow: 0 14px 32px rgba(249, 199, 38, 0.28);
+}
+
+.room-list-create > *,
+.room-dialog-primary {
+  z-index: 1;
+}
+
+.room-dialog-backdrop {
+  background: rgba(34, 26, 20, 0.48);
+}
+
+.room-field input::placeholder {
+  color: rgba(204, 204, 204, 0.46);
+}
+
+.room-icon-option-selected,
+.room-member-option-selected {
+  border-color: rgba(249, 199, 38, 0.82);
+  background: rgba(249, 199, 38, 0.12);
+  color: var(--unsik-gold);
+}
+
+.room-dialog-danger {
+  background: var(--unsik-danger);
+}
+
+.room-enter-button:focus-visible,
+.room-menu-button:focus-visible,
+.room-logout-button:focus-visible,
+.room-menu-item:focus-visible,
+.room-list-create:focus-visible,
+.room-list-join:focus-visible,
+.room-dialog button:focus-visible,
+.room-dialog input:focus-visible {
+  outline-color: var(--unsik-focus);
+}
+
+.room-card::before,
+.room-list-create::before,
+.room-dialog-primary::before {
+  display: none;
+  animation: none;
+}
+
+.room-card {
+  border: 1.5px solid rgba(122, 74, 14, 0.46);
+  background:
+    linear-gradient(180deg, rgba(54, 44, 35, 0.98), rgba(27, 20, 13, 0.98)),
+    var(--unsik-surface);
+  box-shadow:
+    0 12px 26px rgba(34, 26, 20, 0.18),
+    inset 0 1px 0 rgba(255, 245, 220, 0.06);
+}
+
+.room-card:hover {
+  border-color: rgba(249, 199, 38, 0.52);
+  box-shadow:
+    0 14px 28px rgba(34, 26, 20, 0.22),
+    0 0 0 1px rgba(249, 199, 38, 0.08),
+    inset 0 1px 0 rgba(255, 245, 220, 0.08);
+}
+
+.room-card-featured,
+.room-card-open {
+  border-color: rgba(249, 199, 38, 0.58);
+  background:
+    linear-gradient(180deg, rgba(54, 44, 35, 0.98), rgba(27, 20, 13, 0.98)),
+    var(--unsik-surface);
+  box-shadow:
+    0 14px 28px rgba(34, 26, 20, 0.22),
+    0 0 0 1px rgba(249, 199, 38, 0.08),
+    inset 0 1px 0 rgba(255, 245, 220, 0.08);
+}
+
+.room-card-copy h2 {
+  color: #ffffff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.room-card-copy p,
+.room-member-count,
+.room-recommendation {
+  color: #d7cfc5;
+}
+
+.room-recommendation {
+  opacity: 0.72;
+}
+
+.room-enter-button,
+.room-card-featured .room-enter-button {
+  border-color: rgba(249, 199, 38, 0.45);
+  background: rgba(42, 32, 20, 0.92);
+  color: #ffe37b;
+}
+
+.room-enter-button:hover,
+.room-enter-button:focus-visible {
+  border-color: rgba(249, 199, 38, 0.78);
+  color: #fff0a6;
+}
+
+.room-menu-button {
+  border-color: rgba(204, 204, 204, 0.28);
+  background: rgba(36, 29, 22, 0.82);
+}
+
+.room-list-create,
+.room-dialog-primary {
+  box-shadow: 0 10px 22px rgba(122, 74, 14, 0.18);
+}

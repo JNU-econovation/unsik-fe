@@ -11,8 +11,9 @@ The group and vote flow supports creating a vote, choosing a meal location,
 selecting participants, submitting preferences, voting on candidate menus,
 showing a final menu, listing nearby restaurants, and opening restaurant/menu
 detail views. The group condition screen links to a previous meal history view
-derived from closed group vote results. The UI follows the dark mobile Figma
-draft, adapted into plain React and CSS.
+derived from closed group vote results. The main landing screen keeps its dark
+mystic style, while the post-login group and vote flows use a warm beige, dark
+brown, and gold-accent mobile style adapted into plain React and CSS.
 
 After a member submits their own food preferences, the frontend returns them to
 the vote status screen if other participants are still pending. That screen

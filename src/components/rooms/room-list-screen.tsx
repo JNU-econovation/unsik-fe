@@ -659,7 +659,7 @@ type RoomCardProps = {
 };
 
 function RoomCard({ room, isMenuOpen, onOpen, onToggleMenu, onMenuAction, style }: RoomCardProps) {
-  const cardClassName = `room-card room-card-featured${isMenuOpen ? ' room-card-open' : ''}`;
+  const cardClassName = `room-card${isMenuOpen ? ' room-card-open' : ''}`;
 
   return (
     <article className={cardClassName} style={style}>
