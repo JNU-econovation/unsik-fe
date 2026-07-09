@@ -1125,3 +1125,151 @@
 .room-dialog-primary {
   box-shadow: 0 10px 22px rgba(122, 74, 14, 0.18);
 }
+
+@media (prefers-color-scheme: dark) {
+  .room-list-screen {
+    background:
+      radial-gradient(circle at 50% -12%, rgba(82, 73, 157, 0.22), transparent 34%),
+      #0e0e21;
+    color: #ffffff;
+  }
+
+  .room-list-canvas::before {
+    opacity: 0;
+  }
+
+  .room-list-star {
+    color: #c7c7e5;
+    text-shadow: 0 0 12px rgba(245, 200, 41, 0.24);
+  }
+
+  .room-list-nav-title,
+  .room-list-section-label,
+  .room-list-header p,
+  .room-member-count,
+  .room-recommendation,
+  .room-card-copy p {
+    color: #8f8fbd;
+  }
+
+  .room-list-header h1,
+  .room-card-copy h2,
+  .room-empty-state p,
+  .room-dialog-header h2 {
+    color: #ffffff;
+  }
+
+  .room-logout-button,
+  .room-list-join,
+  .room-dialog-secondary,
+  .room-dialog-header button,
+  .room-field input,
+  .room-icon-option,
+  .room-member-option,
+  .room-enter-button {
+    border-color: rgba(199, 199, 229, 0.22);
+    background: #1d1b3d;
+    color: #c7c7e5;
+  }
+
+  .room-logout-button:hover,
+  .room-list-join:hover,
+  .room-enter-button:hover,
+  .room-enter-button:focus-visible {
+    border-color: rgba(245, 200, 41, 0.54);
+    color: #f5c829;
+    box-shadow: 0 0 18px rgba(245, 200, 41, 0.14);
+  }
+
+  .room-card,
+  .room-card-featured,
+  .room-card-open {
+    border: 1px solid rgba(110, 110, 158, 0.24);
+    background: #151332;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+  }
+
+  .room-card:hover,
+  .room-card-featured,
+  .room-card-open {
+    border-color: rgba(245, 200, 41, 0.5);
+    box-shadow:
+      0 14px 30px rgba(0, 0, 0, 0.38),
+      0 0 0 1px rgba(245, 200, 41, 0.12);
+  }
+
+  .room-icon,
+  .room-menu-button {
+    border-color: rgba(199, 199, 229, 0.22);
+    background: #1d1b3d;
+  }
+
+  .room-card-divider,
+  .room-menu-item {
+    border-color: rgba(199, 199, 229, 0.1);
+  }
+
+  .room-card-divider {
+    background: rgba(199, 199, 229, 0.1);
+  }
+
+  .room-card-featured .room-enter-button {
+    border-color: rgba(245, 200, 41, 0.72);
+    background: #332908;
+    color: #f5c829;
+  }
+
+  .room-menu-button span {
+    background: #c7c7e5;
+  }
+
+  .room-menu-button[aria-expanded='true'] {
+    border-color: rgba(245, 200, 41, 0.54);
+    background: #282043;
+  }
+
+  .room-menu-popover,
+  .room-dialog,
+  .room-toast,
+  .room-empty-state {
+    border-color: rgba(61, 61, 102, 0.95);
+    background: rgba(29, 27, 61, 0.96);
+    color: #f7f3ff;
+  }
+
+  .room-menu-item {
+    color: #c7c7e5;
+  }
+
+  .room-menu-item:hover {
+    background: rgba(199, 199, 229, 0.06);
+  }
+
+  .room-list-hint,
+  .room-dialog-description,
+  .room-field > span {
+    color: rgba(199, 199, 229, 0.58);
+  }
+
+  .room-list-create,
+  .room-dialog-primary {
+    background: #f5c829;
+    color: #07071a;
+    box-shadow: 0 12px 26px rgba(245, 200, 41, 0.16);
+  }
+
+  .room-dialog-backdrop {
+    background: rgba(7, 7, 26, 0.62);
+  }
+
+  .room-field input::placeholder {
+    color: rgba(199, 199, 229, 0.46);
+  }
+
+  .room-icon-option-selected,
+  .room-member-option-selected {
+    border-color: rgba(245, 200, 41, 0.82);
+    background: rgba(245, 200, 41, 0.12);
+    color: #f5c829;
+  }
+}

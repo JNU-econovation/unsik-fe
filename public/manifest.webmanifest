@@ -9,8 +9,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
-  "background_color": "#e0d5c5",
-  "theme_color": "#e0d5c5",
+  "background_color": "#12103a",
+  "theme_color": "#12103a",
   "categories": ["food", "lifestyle", "social"],
   "icons": [
     {

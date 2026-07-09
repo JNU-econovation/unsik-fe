@@ -30,6 +30,37 @@
   --unsik-shadow-glow: 0 0 0 1px rgba(249, 199, 38, 0.16), 0 16px 36px rgba(249, 199, 38, 0.2);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --unsik-bg: #07071a;
+    --unsik-bg-soft: #12103a;
+    --unsik-text: #ffffff;
+    --unsik-text-soft: #c7c7e5;
+    --unsik-muted: #8f8fbd;
+    --unsik-surface: #1d1b3d;
+    --unsik-surface-deep: #151332;
+    --unsik-surface-low: #0f0e28;
+    --unsik-surface-raised: #282043;
+    --unsik-border-muted: rgba(199, 199, 229, 0.2);
+    --unsik-border-strong: #3d3d66;
+    --unsik-gold: #f5c829;
+    --unsik-gold-bright: #fad103;
+    --unsik-gold-map: #fad103;
+    --unsik-rust: #f5c829;
+    --unsik-amber-text: #f5c829;
+    --unsik-green: #33c766;
+    --unsik-danger: #f55947;
+    --unsik-danger-text: #ffb6ad;
+    --unsik-ink-on-dark: #ffffff;
+    --unsik-muted-on-dark: #8f8fbd;
+    --unsik-soft-on-dark: #c7c7e5;
+    --unsik-focus: #f5c829;
+    --unsik-shadow-card: 0 12px 28px rgba(0, 0, 0, 0.34);
+    --unsik-shadow-glow: 0 0 0 1px rgba(245, 200, 41, 0.18), 0 16px 38px rgba(245, 200, 41, 0.14);
+  }
+}
+
 html {
   min-height: 100%;
   background: var(--unsik-bg);

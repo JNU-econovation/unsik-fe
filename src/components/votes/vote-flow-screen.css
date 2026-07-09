@@ -2782,3 +2782,308 @@
 .vote-chip:hover {
   border-color: rgba(249, 199, 38, 0.52);
 }
+
+@media (prefers-color-scheme: dark) {
+  .vote-flow-screen {
+    background: #07071a;
+    color: #ffffff;
+  }
+
+  .vote-history-screen {
+    background: #0a0908;
+  }
+
+  .vote-flow-canvas::before {
+    opacity: 0;
+  }
+
+  .vote-stars span {
+    color: #f5c829;
+    text-shadow: 0 0 12px rgba(245, 200, 41, 0.24);
+  }
+
+  .vote-nav button {
+    border-color: rgba(245, 200, 41, 0.28);
+    background: #1d1b3d;
+    color: #c7c7e5;
+    box-shadow: none;
+  }
+
+  .vote-nav p,
+  .vote-page-header h1,
+  .vote-score-title h1,
+  .vote-centered-header strong,
+  .vote-card-question strong,
+  .vote-history-title,
+  .vote-member-header strong,
+  .vote-label-row strong,
+  .vote-section-title,
+  .vote-small-title,
+  .vote-oracle-header h1 {
+    color: #ffffff;
+  }
+
+  .vote-page-header p,
+  .vote-centered-header p,
+  .vote-oracle-header p,
+  .vote-list-card small,
+  .vote-text-field span,
+  .vote-history-button small,
+  .vote-history-summary span,
+  .vote-member-header small,
+  .vote-member small,
+  .vote-progress-row small,
+  .vote-status-members small,
+  .vote-oracle-card small,
+  .vote-menu-search,
+  .vote-menu-search input::placeholder,
+  .vote-menu-search-results p,
+  .vote-menu-search-item small,
+  .vote-cuisine small,
+  .vote-menu-card p,
+  .vote-card-stack-preview,
+  .vote-reveal-card p,
+  .vote-final-hero p,
+  .vote-final-hero small,
+  .vote-restaurant-card small,
+  .vote-empty-panel p,
+  .vote-restaurant-header p,
+  .vote-info-row small,
+  .vote-review-card p,
+  .vote-score-top small {
+    color: #8f8fbd;
+  }
+
+  .vote-nav span,
+  .vote-eyebrow,
+  .vote-list-card em,
+  .vote-history-button em,
+  .vote-oracle-header span,
+  .vote-reveal-card span,
+  .vote-final-hero span,
+  .vote-reveal-card small,
+  .vote-restaurant-card b,
+  .vote-review-card span {
+    color: #f5c829;
+    text-shadow: none;
+  }
+
+  .vote-list-card,
+  .vote-status-card,
+  .vote-warning-banner,
+  .vote-api-note,
+  .vote-reveal-card,
+  .vote-final-hero,
+  .vote-restaurant-card,
+  .vote-loading-panel,
+  .vote-empty-panel,
+  .vote-restaurant-header,
+  .vote-info-card,
+  .vote-review-card,
+  .vote-score-card,
+  .vote-menu-search,
+  .vote-menu-search-results,
+  .vote-menu-search-item,
+  .vote-card-stack-preview,
+  .vote-menu-card,
+  .vote-oracle-card,
+  .vote-toast {
+    border-color: rgba(110, 110, 158, 0.24);
+    background: #151332;
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+  }
+
+  .vote-list-card strong,
+  .vote-member-selected strong,
+  .vote-oracle-card-active strong,
+  .vote-menu-card strong,
+  .vote-reveal-card strong,
+  .vote-restaurant-card strong,
+  .vote-restaurant-header strong,
+  .vote-review-card strong,
+  .vote-score-top strong,
+  .vote-empty-panel strong,
+  .vote-cuisine strong,
+  .vote-cuisine-selected strong,
+  .vote-cuisine-selected small {
+    color: #ffffff;
+  }
+
+  .vote-list-icon,
+  .vote-oracle-image,
+  .vote-restaurant-header > span,
+  .vote-score-donut,
+  .vote-score-row div,
+  .vote-menu-search-item b,
+  .vote-card-stack-preview span {
+    background: #1d1b3d;
+    color: #f5c829;
+  }
+
+  .vote-text-field input,
+  .vote-chip,
+  .vote-history-filter,
+  .vote-member,
+  .vote-menu-search input,
+  .vote-menu-search em,
+  .vote-menu-search button,
+  .vote-selected-menu-list button,
+  .vote-secondary-button {
+    border-color: rgba(199, 199, 229, 0.22);
+    background: #1d1b3d;
+    color: #c7c7e5;
+  }
+
+  .vote-label-row span,
+  .vote-history-summary,
+  .vote-history-button,
+  .vote-api-message {
+    border-color: rgba(245, 200, 41, 0.34);
+    background: rgba(245, 200, 41, 0.08);
+    color: #f5c829;
+  }
+
+  .vote-chip-selected,
+  .vote-history-filter-selected,
+  .vote-menu-search-item-selected {
+    border-color: rgba(245, 200, 41, 0.84);
+    background: #332908;
+    color: #f5c829;
+    box-shadow: 0 0 18px rgba(245, 200, 41, 0.14);
+  }
+
+  .vote-chip-danger,
+  .vote-outline-red,
+  .vote-dislike-button {
+    border-color: #f55947;
+    background: #400a17;
+    color: #ffb6ad;
+  }
+
+  .vote-like-button {
+    border-color: #33c766;
+    background: #0a2e12;
+    color: #33c766;
+  }
+
+  .vote-status-card,
+  .vote-menu-card,
+  .vote-reveal-card,
+  .vote-final-hero,
+  .vote-oracle-card-active,
+  .vote-oracle-card-selected {
+    border-color: rgba(245, 200, 41, 0.62);
+    box-shadow:
+      0 14px 30px rgba(0, 0, 0, 0.38),
+      0 0 0 1px rgba(245, 200, 41, 0.12);
+  }
+
+  .vote-progress-track,
+  .vote-card-progress span {
+    border-color: rgba(199, 199, 229, 0.18);
+    background: #282043;
+  }
+
+  .vote-progress-track div,
+  .vote-card-progress-active,
+  .vote-oracle-card-selected em {
+    background: #f5c829 !important;
+  }
+
+  .vote-outline-yellow {
+    border-color: #f5c829;
+    background: rgba(245, 200, 41, 0.1);
+    color: #f5c829;
+  }
+
+  .vote-oracle-card,
+  .vote-cuisine {
+    border-color: rgba(110, 110, 158, 0.24);
+    background: #151332;
+    color: #f7f3ff;
+  }
+
+  .vote-oracle-card em {
+    border-color: #3d3d66;
+  }
+
+  .vote-cuisine-selected {
+    border-width: 2px;
+    border-color: var(--vote-accent);
+    background:
+      linear-gradient(135deg, var(--vote-accent-tint, rgba(245, 200, 41, 0.22)), transparent 56%),
+      #151332;
+    color: #ffffff;
+    box-shadow:
+      0 0 0 1px var(--vote-accent-ring, rgba(245, 200, 41, 0.36)),
+      0 12px 26px var(--vote-accent-glow, rgba(245, 200, 41, 0.18));
+  }
+
+  .vote-cuisine-selected span {
+    color: var(--vote-accent);
+  }
+
+  .vote-cuisine-selected b {
+    border-color: var(--vote-accent-ring, rgba(245, 200, 41, 0.78));
+    background: var(--vote-accent);
+    color: #07071a;
+  }
+
+  .vote-menu-search input {
+    background: transparent;
+    color: #ffffff;
+  }
+
+  .vote-menu-search-results,
+  .vote-toast {
+    background: rgba(29, 27, 61, 0.98);
+  }
+
+  .vote-map-panel {
+    border-color: rgba(199, 199, 229, 0.08);
+    background:
+      linear-gradient(rgba(56, 66, 46, 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 66, 46, 0.35) 1px, transparent 1px),
+      #21291c;
+    color: #ffffff;
+  }
+
+  .vote-map-panel strong {
+    background: #ffffff;
+    color: #07071a;
+  }
+
+  .vote-map-panel em,
+  .vote-restaurant-header em {
+    background: #0a2e12;
+    color: #33c766;
+  }
+
+  .vote-info-row p,
+  .vote-score-row span,
+  .vote-status-head strong,
+  .vote-result-members strong {
+    color: #c7c7e5;
+  }
+
+  .vote-primary-button,
+  .vote-primary-link {
+    background: #f5c829;
+    color: #07071a;
+    box-shadow: 0 12px 26px rgba(245, 200, 41, 0.16);
+  }
+
+  .vote-primary-button:hover,
+  .vote-primary-link:hover {
+    background: #fad103;
+  }
+
+  .vote-secondary-button:hover,
+  .vote-chip:hover,
+  .vote-list-card:hover,
+  .vote-restaurant-card:hover,
+  .vote-menu-search-item:hover {
+    border-color: rgba(245, 200, 41, 0.52);
+  }
+}
