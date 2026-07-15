@@ -29,6 +29,13 @@ on the status screen. After the current member submits candidate ballots, the
 same status screen polls vote detail until `resultMenu` appears and then opens
 the final result.
 
+The preference screen searches the backend menu catalog by normalized menu or
+cuisine text, so spacing differences do not block matches. It provides an
+in-place retry when the catalog request fails or exceeds a ten-second timeout,
+and explains that selecting a
+specific menu excludes its cuisine because the preference API accepts cuisines,
+not menu IDs.
+
 Backend integration is partial because the current Swagger contract does not
 cover every screen state. Kakao auth, groups, group members, vote creation,
 preference submission, recommendation, ballot submission, vote detail, vote
@@ -217,7 +224,10 @@ Known contract gaps:
   longer fills missing visual slots with local candidate data.
 - No ballot progress/count endpoint exists. After a member submits
   `POST /api/votes/{voteId}/ballots`, the frontend can mark the current
-  browser's member as submitted locally, but it still waits for
+  browser's member as submitted locally. That marker is persisted per member in
+  browser storage so the vote list and re-entry show `참여 완료` after a reload
+  on the same browser. Cross-device completion still needs a backend status
+  field or endpoint. The frontend still waits for
   `GET /api/votes/{voteId}` polling to return `resultMenu` instead of forcing a
   close.
 - Restaurant search returns Kakao Local documents but not rating, price, or

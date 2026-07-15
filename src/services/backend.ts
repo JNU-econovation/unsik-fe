@@ -123,6 +123,7 @@ type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string;
+  timeoutMs?: number;
 };
 
 export const AUTH_EXPIRED_EVENT = 'unsik:auth-expired';
@@ -154,17 +155,30 @@ export async function requestBackend(path: `/${string}`, options: RequestOptions
   }
 
   let response: Response;
+  const abortController = new AbortController();
+  const timeoutId = options.timeoutMs
+    ? window.setTimeout(() => abortController.abort(), options.timeoutMs)
+    : null;
 
   try {
     response = await fetch(createApiUrl(path), {
       method: options.method ?? 'GET',
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: abortController.signal,
     });
   } catch {
+    if (abortController.signal.aborted) {
+      throw new Error(formatApiErrorMessage('TIMEOUT', '서버 응답이 늦어 요청을 중단했어요. 다시 시도해 주세요.'));
+    }
+
     throw new Error(
       formatApiErrorMessage('NETWORK', '서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.'),
     );
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   if (!response.ok) {
@@ -279,7 +293,7 @@ export async function listPendingPreferenceMembers(
 }
 
 export async function listMenus() {
-  const value = await requestBackend('/api/menus');
+  const value = await requestBackend('/api/menus', { timeoutMs: 10_000 });
 
   return asArray(value).map(parseMenuResponse);
 }

@@ -1215,6 +1215,15 @@
   font-size: 10px;
 }
 
+.vote-menu-search-help {
+  position: relative;
+  z-index: 1;
+  margin: 7px 2px 0;
+  color: #ff9b91;
+  font-size: 11px;
+  line-height: 17px;
+}
+
 .vote-menu-search-results {
   position: relative;
   z-index: 2;
@@ -1233,6 +1242,29 @@
   color: #6e6e9e;
   font-size: 12px;
   text-align: center;
+}
+
+.vote-menu-search-error {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 6px;
+}
+
+.vote-menu-search-error button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(245, 200, 41, 0.48);
+  border-radius: 18px;
+  background: rgba(245, 200, 41, 0.1);
+  color: #f5c829;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.vote-menu-search-error button:focus-visible {
+  outline: 3px solid rgba(245, 200, 41, 0.65);
+  outline-offset: 3px;
 }
 
 .vote-menu-search-item {

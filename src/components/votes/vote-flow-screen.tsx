@@ -110,6 +110,7 @@ type MealHistoryItem = {
 };
 
 const MEMBER_COLORS = ['#e8c7ab', '#fcd4de', '#c9ede3', '#dbd1f7', '#c9f2b4', '#b9d9ff'];
+const BALLOT_COMPLETION_STORAGE_PREFIX = 'unsik:submitted_ballot_vote_ids';
 
 const HISTORY_FILTERS: Array<{ value: MealHistoryFilter; label: string }> = [
   { value: 'all', label: '전체' },
@@ -382,6 +383,10 @@ export function VoteFlowScreen({
       }
     };
   }, []);
+
+  useEffect(() => {
+    setSubmittedBallotVoteIds(readSubmittedBallotVoteIds(memberId));
+  }, [memberId]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -668,6 +673,24 @@ export function VoteFlowScreen({
     },
     [context.memberId],
   );
+
+  const markBallotSubmitted = useCallback((voteId: number) => {
+    setSubmittedBallotVoteIds((current) => {
+      const next = new Set(current).add(voteId);
+
+      writeSubmittedBallotVoteIds(memberId, next);
+      return next;
+    });
+  }, [memberId]);
+
+  const clearBallotSubmission = useCallback((voteId: number) => {
+    setSubmittedBallotVoteIds((current) => {
+      const next = withoutVoteId(current, voteId);
+
+      writeSubmittedBallotVoteIds(memberId, next);
+      return next;
+    });
+  }, [memberId]);
 
   const loadPendingPreferenceIds = useCallback(
     async (voteId: number): Promise<Set<number> | null> => {
@@ -1033,6 +1056,10 @@ export function VoteFlowScreen({
       setBallotChoices({});
 
       if (detail?.resultMenu) {
+        if (memberId && detail.participants.some((participant) => participant.memberId === memberId)) {
+          markBallotSubmitted(nextSummary.voteId);
+        }
+
         setFinalMenu(toCandidateCard(detail.resultMenu));
         setStep('final');
       } else if (hasSubmittedBallot) {
@@ -1073,13 +1100,7 @@ export function VoteFlowScreen({
     try {
       await deleteVote({ memberId: context.memberId, token: context.token }, voteId);
       setVoteSummaries((current) => current.filter((vote) => vote.voteId !== voteId));
-      setSubmittedBallotVoteIds((current) => {
-        const next = new Set(current);
-
-        next.delete(voteId);
-
-        return next;
-      });
+      clearBallotSubmission(voteId);
       setSubmittedPreferenceVoteIds((current) => {
         const next = new Set(current);
 
@@ -1113,7 +1134,7 @@ export function VoteFlowScreen({
     try {
       await deleteVote({ memberId: context.memberId, token: context.token }, vote.voteId);
       setVoteSummaries((current) => current.filter((summary) => summary.voteId !== vote.voteId));
-      setSubmittedBallotVoteIds((current) => withoutVoteId(current, vote.voteId));
+      clearBallotSubmission(vote.voteId);
       setSubmittedPreferenceVoteIds((current) => withoutVoteId(current, vote.voteId));
       showToast('투표를 삭제했어요.');
     } catch (error) {
@@ -1217,7 +1238,7 @@ export function VoteFlowScreen({
 
     try {
       await submitBallot({ memberId: context.memberId, token: context.token }, voteId, apiChoices);
-      setSubmittedBallotVoteIds((current) => new Set(current).add(voteId));
+      markBallotSubmitted(voteId);
     } catch (error) {
       setApiMessage(`호불호 투표를 제출하지 못했어요: ${getErrorMessage(error)}`);
       setIsLoading(false);
@@ -1305,6 +1326,11 @@ export function VoteFlowScreen({
     setExcludedMenuIds((current) => toggleSetValue(current, menuId));
   };
 
+  const retryMenuCatalog = () => {
+    setMenuCatalogStatus('idle');
+    setApiMessage(null);
+  };
+
   const handleToggleRestriction = (option: (typeof RESTRICTION_OPTIONS)[number]) => {
     if (option.label === '없음') {
       setRestrictions(new Set());
@@ -1331,6 +1357,7 @@ export function VoteFlowScreen({
           onCreate={() => resetForNewVote('오늘 점심')}
           onDeleteVote={(vote) => void handleDeleteVoteFromList(vote)}
           onSelectVote={handleSelectVote}
+          submittedBallotVoteIds={submittedBallotVoteIds}
           isLoading={isLoadingVoteSummaries}
           message={voteListMessage}
           votes={voteSummaries}
@@ -1423,6 +1450,7 @@ export function VoteFlowScreen({
           menuSearch={menuSearch}
           onBack={() => setStep('oracle')}
           onMenuSearchChange={setMenuSearch}
+          onRetryMenuCatalog={retryMenuCatalog}
           onNext={() => void handlePreferenceSubmit()}
           onToggleCuisine={handleToggleCuisine}
           onToggleExcludedMenu={handleToggleExcludedMenu}
@@ -1580,6 +1608,7 @@ function VoteListView({
   onCreate,
   onDeleteVote,
   onSelectVote,
+  submittedBallotVoteIds,
 }: {
   groupId: string;
   memberName?: string;
@@ -1590,6 +1619,7 @@ function VoteListView({
   onCreate: () => void;
   onDeleteVote: (vote: VoteSummary) => void;
   onSelectVote: (vote: VoteSummary) => void;
+  submittedBallotVoteIds: Set<number>;
 }) {
   const [openMenuVoteId, setOpenMenuVoteId] = useState<number | null>(null);
   const hasLoadError = Boolean(message?.includes('실패'));
@@ -1618,7 +1648,7 @@ function VoteListView({
                   <strong>{vote.title}</strong>
                   <small>{vote.meta}</small>
                 </span>
-                <em>{getVoteStatusLabel(vote.status)}</em>
+                <em>{submittedBallotVoteIds.has(vote.voteId) ? '참여 완료' : getVoteStatusLabel(vote.status)}</em>
               </button>
               <div className="vote-list-menu">
                 <button
@@ -2040,6 +2070,7 @@ function PreferenceView({
   menuSearch,
   onBack,
   onMenuSearchChange,
+  onRetryMenuCatalog,
   onNext,
   onToggleCuisine,
   onToggleExcludedMenu,
@@ -2055,21 +2086,29 @@ function PreferenceView({
   menuSearch: string;
   onBack: () => void;
   onMenuSearchChange: (value: string) => void;
+  onRetryMenuCatalog: () => void;
   onNext: () => void;
   onToggleCuisine: (cuisine: Cuisine) => void;
   onToggleExcludedMenu: (menuId: number) => void;
   onToggleRestriction: (option: (typeof RESTRICTION_OPTIONS)[number]) => void;
 }) {
-  const normalizedSearch = menuSearch.trim().toLowerCase();
+  const normalizedSearch = normalizeMenuSearchText(menuSearch);
   const selectedMenus = menuCatalog.filter((menu) => excludedMenuIds.has(menu.id));
   const searchedMenus = normalizedSearch
     ? menuCatalog
         .filter((menu) => {
-          const cuisineLabel = getCuisineLabel(menu.cuisine).toLowerCase();
+          const cuisineLabel = normalizeMenuSearchText(getCuisineLabel(menu.cuisine));
+          const menuName = normalizeMenuSearchText(menu.name);
 
-          return menu.name.toLowerCase().includes(normalizedSearch) || cuisineLabel.includes(normalizedSearch);
+          return menuName.includes(normalizedSearch) || cuisineLabel.includes(normalizedSearch);
         })
-        .slice(0, 8)
+        .sort((first, second) => {
+          const firstStartsWith = normalizeMenuSearchText(first.name).startsWith(normalizedSearch);
+          const secondStartsWith = normalizeMenuSearchText(second.name).startsWith(normalizedSearch);
+
+          return Number(secondStartsWith) - Number(firstStartsWith) || first.name.localeCompare(second.name, 'ko-KR');
+        })
+        .slice(0, 12)
     : [];
 
   return (
@@ -2098,21 +2137,30 @@ function PreferenceView({
       </div>
 
       {selectedMenus.length > 0 ? (
-        <div className="vote-selected-menu-list" aria-label="검색으로 제외한 메뉴">
-          {selectedMenus.map((menu) => (
-            <button type="button" key={menu.id} onClick={() => onToggleExcludedMenu(menu.id)}>
-              <span>{menu.name}</span>
-              <small>{getCuisineLabel(menu.cuisine)} 제외</small>
-              <b aria-hidden="true">×</b>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="vote-selected-menu-list" aria-label="검색으로 제외한 메뉴">
+            {selectedMenus.map((menu) => (
+              <button type="button" key={menu.id} onClick={() => onToggleExcludedMenu(menu.id)}>
+                <span>{menu.name}</span>
+                <small>{getCuisineLabel(menu.cuisine)} 제외</small>
+                <b aria-hidden="true">×</b>
+              </button>
+            ))}
+          </div>
+          <p className="vote-menu-search-help">선택한 메뉴와 같은 음식 종류가 추천에서 제외됩니다.</p>
+        </>
       ) : null}
 
       {normalizedSearch ? (
         <div className="vote-menu-search-results">
           {menuCatalogStatus === 'loading' ? <p>전체 메뉴를 불러오는 중입니다</p> : null}
-          {menuCatalogStatus !== 'loading' && searchedMenus.length === 0 ? <p>검색 결과가 없습니다</p> : null}
+          {menuCatalogStatus === 'error' ? (
+            <div className="vote-menu-search-error">
+              <p>메뉴를 불러오지 못했어요.</p>
+              <button type="button" onClick={onRetryMenuCatalog}>다시 불러오기</button>
+            </div>
+          ) : null}
+          {menuCatalogStatus === 'loaded' && searchedMenus.length === 0 ? <p>검색 결과가 없습니다</p> : null}
           {searchedMenus.map((menu) => {
             const isSelected = excludedMenuIds.has(menu.id);
 
@@ -2713,6 +2761,10 @@ function getCuisineIcon(cuisine: Cuisine) {
   return CUISINE_OPTIONS.find((option) => option.cuisine === cuisine)?.icon ?? '🍽️';
 }
 
+function normalizeMenuSearchText(value: string) {
+  return value.normalize('NFKC').toLocaleLowerCase('ko-KR').replaceAll(/\s+/g, '');
+}
+
 function getMenuIcon(name: string, cuisine: Cuisine) {
   const normalizedName = name.toLocaleLowerCase('ko-KR').replaceAll(/\s+/g, ' ');
   const matchedRule = MENU_ICON_RULES.find((rule) =>
@@ -2912,4 +2964,34 @@ function withoutVoteId(voteIds: Set<number>, voteId: number): Set<number> {
   next.delete(voteId);
 
   return next;
+}
+
+function readSubmittedBallotVoteIds(memberId?: number): Set<number> {
+  if (!memberId) {
+    return new Set();
+  }
+
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(`${BALLOT_COMPLETION_STORAGE_PREFIX}:${memberId}`) ?? '[]');
+
+    if (!Array.isArray(value)) {
+      return new Set();
+    }
+
+    return new Set(value.filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0));
+  } catch {
+    return new Set();
+  }
+}
+
+function writeSubmittedBallotVoteIds(memberId: number | undefined, voteIds: Set<number>) {
+  if (!memberId) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(`${BALLOT_COMPLETION_STORAGE_PREFIX}:${memberId}`, JSON.stringify(Array.from(voteIds)));
+  } catch {
+    // The in-memory completion state still works when browser storage is unavailable.
+  }
 }
