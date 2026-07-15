@@ -179,9 +179,6 @@ The app has installable PWA basics:
   `resultMenu`
 - `GET /api/votes/{voteId}/pending-members?memberId=...`: preference pending
   members for status-screen profile check marks
-- `POST /api/votes/{voteId}/close?memberId=...`: OWNER-only forced close from
-  the vote status screen; the frontend reloads vote detail after closing and
-  opens the result when the backend returns `resultMenu`
 - `DELETE /api/votes/{voteId}?memberId=...`: deletion of any vote state from
   each group vote list card's overflow menu; the backend enforces OWNER access
 - `GET /api/restaurants?menu=...&voteId=...&page=...`: restaurant search
@@ -191,6 +188,8 @@ Available Vote endpoints not currently used:
 - `POST /api/votes/{voteId}/recommend/force?memberId=...`: Swagger marks this
   as OWNER forced recommendation, so the frontend keeps the normal all-member
   preference flow.
+- `POST /api/votes/{voteId}/close?memberId=...`: this endpoint force-aggregates
+  submitted ballots into a result; it is not used as a cancellation action
 - `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the
   group-scoped `GET /api/groups/{groupId}/votes?memberId=...` endpoint.
 Known contract gaps:
@@ -217,10 +216,6 @@ Known contract gaps:
   browser's member as submitted locally, but it still waits for
   `GET /api/votes/{voteId}` polling to return `resultMenu` instead of forcing a
   close.
-- OWNER forced close requires at least one submitted ballot. The status screen
-  exposes the action only after the current OWNER submits a ballot and the
-  latest backend state is `VOTING`; it refreshes vote detail immediately before
-  closing so stale `RECOMMENDING` or `CLOSED` state does not cause a `409`.
 - Restaurant search returns Kakao Local documents but not rating, price, or
   reviews. Those fields are not rendered.
 - No menu score/reason endpoint exists. The menu detail screen shows only the

@@ -132,8 +132,11 @@
 .vote-list-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  gap: 0;
   align-items: stretch;
+  border: 1px solid rgba(110, 110, 158, 0.22);
+  border-radius: 14px;
+  background: #151332;
 }
 
 .vote-list-item-with-action {
@@ -421,9 +424,9 @@
   min-width: 48px;
   height: 100%;
   min-height: 78px;
-  border: 1px solid rgba(110, 110, 158, 0.22);
-  border-radius: 18px;
-  background: #151332;
+  border: 0;
+  border-radius: 0 14px 14px 0;
+  background: transparent;
   color: #f5c829;
   cursor: pointer;
   font-size: 25px;
@@ -2190,6 +2193,7 @@
   color: var(--unsik-muted);
 }
 
+.vote-list-item,
 .vote-list-card,
 .vote-status-card,
 .vote-warning-banner,
@@ -2306,25 +2310,6 @@
   border-color: var(--unsik-danger);
   background: rgba(245, 89, 71, 0.12);
   color: var(--unsik-danger-text);
-}
-
-.vote-force-close-button {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  min-height: 48px;
-  margin-top: 8px;
-  border: 1px solid rgba(245, 89, 71, 0.5);
-  border-radius: 24px;
-  background: transparent;
-  color: #f55947;
-  cursor: pointer;
-  font-weight: 900;
-}
-
-.vote-force-close-button:focus-visible {
-  outline: 3px solid rgba(245, 200, 41, 0.65);
-  outline-offset: 3px;
 }
 
 .vote-history-divider,
@@ -3217,6 +3202,13 @@
 :root[data-unsik-theme='dark'] .vote-oracle-card {
   border-color: rgba(110, 110, 158, 0.24);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+.vote-list-item > .vote-list-card,
+.vote-list-item > .vote-list-menu .vote-list-menu-button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-unsik-theme='dark'] .vote-oracle-card-active:not(.vote-oracle-card-selected) {
