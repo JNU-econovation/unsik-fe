@@ -20,8 +20,12 @@ explicit dark purple, navy, and gold theme.
 
 After a member submits their own food preferences, the frontend returns them to
 the vote status screen if other participants are still pending. That screen
-polls pending preference members and retries recommendation automatically once
-everyone has submitted. After the current member submits candidate ballots, the
+first reloads vote detail for existing candidates, then polls pending preference
+members. Only when no pending members remain does it request recommendation;
+the backend combines every participant's individually stored preferences to
+create the shared candidates. If another client created candidates first, the
+frontend opens those candidates from the latest vote detail instead of remaining
+on the status screen. After the current member submits candidate ballots, the
 same status screen polls vote detail until `resultMenu` appears and then opens
 the final result.
 

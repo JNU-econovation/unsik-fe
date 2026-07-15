@@ -704,6 +704,31 @@ export function VoteFlowScreen({
         return applyRecommendResult(result) ? 'ready' : 'failed';
       } catch (error) {
         if (hasApiErrorCode(error, 409)) {
+          try {
+            const vote = await getVote({ memberId: context.memberId, token: context.token }, voteId);
+
+            setVoteSummaries((current) =>
+              current.map((summary) => (summary.voteId === voteId ? toVoteSummary(vote, summary) : summary)),
+            );
+
+            if (vote.resultMenu) {
+              setFinalMenu(toCandidateCard(vote.resultMenu));
+              setApiMessage(null);
+              setStep('final');
+              return 'ready';
+            }
+
+            if (vote.candidates.length > 0) {
+              return applyRecommendResult(vote) ? 'ready' : 'failed';
+            }
+          } catch (syncError) {
+            if (!quiet) {
+              setApiMessage(`최신 투표 상태를 확인하지 못했어요: ${getErrorMessage(syncError)}`);
+            }
+
+            return 'failed';
+          }
+
           if (!quiet) {
             setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
           }
@@ -722,16 +747,36 @@ export function VoteFlowScreen({
   );
 
   const refreshPreferenceWait = useCallback(
-    async (quiet = false) => {
+    async (quiet = false): Promise<RecommendAttemptStatus> => {
       if (!activeVote?.id || !context.memberId) {
-        return;
+        return 'failed';
       }
 
       try {
+        const vote = await getVote(
+          { memberId: context.memberId, token: context.token },
+          activeVote.id,
+        );
+
+        setVoteSummaries((current) =>
+          current.map((summary) => (summary.voteId === activeVote.id ? toVoteSummary(vote, summary) : summary)),
+        );
+
+        if (vote.resultMenu) {
+          setFinalMenu(toCandidateCard(vote.resultMenu));
+          setApiMessage(null);
+          setStep('final');
+          return 'ready';
+        }
+
+        if (vote.candidates.length > 0) {
+          return applyRecommendResult(vote) ? 'ready' : 'failed';
+        }
+
         const pendingIds = await loadPendingPreferenceIds(activeVote.id);
 
         if (!pendingIds) {
-          return;
+          return 'failed';
         }
 
         if (pendingIds.size === 0) {
@@ -739,20 +784,31 @@ export function VoteFlowScreen({
             setApiMessage('모든 선호가 제출되어 추천 후보를 준비하고 있어요.');
           }
 
-          await tryRecommendVote(activeVote.id, quiet);
-          return;
+          return tryRecommendVote(activeVote.id, quiet);
         }
 
         if (hasSubmittedActivePreference && !quiet) {
           setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
         }
+
+        return 'pending';
       } catch (error) {
         if (!quiet) {
           setApiMessage(`선호 제출 현황을 확인하지 못했어요: ${getErrorMessage(error)}`);
         }
+
+        return 'failed';
       }
     },
-    [activeVote?.id, context.memberId, hasSubmittedActivePreference, loadPendingPreferenceIds, tryRecommendVote],
+    [
+      activeVote?.id,
+      applyRecommendResult,
+      context.memberId,
+      context.token,
+      hasSubmittedActivePreference,
+      loadPendingPreferenceIds,
+      tryRecommendVote,
+    ],
   );
 
   const refreshBallotResult = useCallback(
@@ -1109,10 +1165,9 @@ export function VoteFlowScreen({
 
       markPreferenceSubmitted(activeVote.id);
 
-      const recommendStatus = await tryRecommendVote(activeVote.id);
+      const recommendStatus = await refreshPreferenceWait(false);
 
       if (recommendStatus === 'pending') {
-        await loadPendingPreferenceIds(activeVote.id).catch(() => null);
         setApiMessage('내 선호는 제출됐습니다. 다른 참여자의 선호 제출을 기다리고 있어요.');
         setStep('status');
       }
