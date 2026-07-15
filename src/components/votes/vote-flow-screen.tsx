@@ -1050,6 +1050,42 @@ export function VoteFlowScreen({
     }
   };
 
+  const handleDeleteClosedVote = async (vote: VoteSummary) => {
+    if (!context.memberId) {
+      setVoteListMessage('로그인 정보를 확인할 수 없어 마감된 투표를 삭제할 수 없어요.');
+      return;
+    }
+
+    if (!isCurrentMemberOwner) {
+      setVoteListMessage('그룹장만 마감된 투표를 삭제할 수 있어요.');
+      return;
+    }
+
+    if (vote.status !== 'CLOSED') {
+      setVoteListMessage('마감된 투표만 목록에서 삭제할 수 있어요.');
+      return;
+    }
+
+    if (!window.confirm(`'${vote.title}' 투표 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) {
+      return;
+    }
+
+    setIsLoadingVoteSummaries(true);
+    setVoteListMessage(null);
+
+    try {
+      await deleteVote({ memberId: context.memberId, token: context.token }, vote.voteId);
+      setVoteSummaries((current) => current.filter((summary) => summary.voteId !== vote.voteId));
+      setSubmittedBallotVoteIds((current) => withoutVoteId(current, vote.voteId));
+      setSubmittedPreferenceVoteIds((current) => withoutVoteId(current, vote.voteId));
+      showToast('마감된 투표를 삭제했어요.');
+    } catch (error) {
+      setVoteListMessage(`마감된 투표를 삭제하지 못했어요: ${getErrorMessage(error)}`);
+    } finally {
+      setIsLoadingVoteSummaries(false);
+    }
+  };
+
   const handleVoteReminder = async () => {
     if (!('Notification' in window)) {
       showToast('이 브라우저는 로컬 알림을 지원하지 않아요.');
@@ -1304,6 +1340,8 @@ export function VoteFlowScreen({
           memberName={memberName}
           onBack={onBackToRooms}
           onCreate={() => resetForNewVote('오늘 점심')}
+          canDeleteClosedVotes={isCurrentMemberOwner}
+          onDeleteClosedVote={(vote) => void handleDeleteClosedVote(vote)}
           onSelectVote={handleSelectVote}
           isLoading={isLoadingVoteSummaries}
           message={voteListMessage}
@@ -1554,6 +1592,8 @@ function VoteListView({
   message,
   onBack,
   onCreate,
+  canDeleteClosedVotes,
+  onDeleteClosedVote,
   onSelectVote,
 }: {
   groupId: string;
@@ -1563,6 +1603,8 @@ function VoteListView({
   message: string | null;
   onBack: () => void;
   onCreate: () => void;
+  canDeleteClosedVotes: boolean;
+  onDeleteClosedVote: (vote: VoteSummary) => void;
   onSelectVote: (vote: VoteSummary) => void;
 }) {
   const hasLoadError = Boolean(message?.includes('실패'));
@@ -1584,14 +1626,32 @@ function VoteListView({
       {votes.length > 0 ? (
         <div className="vote-list-stack">
           {votes.map((vote) => (
-            <button className="vote-list-card" type="button" key={vote.id} onClick={() => onSelectVote(vote)}>
-              <span className="vote-list-icon">🗳️</span>
-              <span>
-                <strong>{vote.title}</strong>
-                <small>{vote.meta}</small>
-              </span>
-              <em>{getVoteStatusLabel(vote.status)}</em>
-            </button>
+            <div
+              className={canDeleteClosedVotes && vote.status === 'CLOSED'
+                ? 'vote-list-item vote-list-item-with-action'
+                : 'vote-list-item'}
+              key={vote.id}
+            >
+              <button className="vote-list-card" type="button" onClick={() => onSelectVote(vote)}>
+                <span className="vote-list-icon">🗳️</span>
+                <span>
+                  <strong>{vote.title}</strong>
+                  <small>{vote.meta}</small>
+                </span>
+                <em>{getVoteStatusLabel(vote.status)}</em>
+              </button>
+              {canDeleteClosedVotes && vote.status === 'CLOSED' ? (
+                <button
+                  className="vote-list-delete-button"
+                  type="button"
+                  aria-label={`${vote.title} 마감 투표 삭제`}
+                  disabled={isLoading}
+                  onClick={() => onDeleteClosedVote(vote)}
+                >
+                  <span aria-hidden="true">🗑️</span>
+                </button>
+              ) : null}
+            </div>
           ))}
         </div>
       ) : (
@@ -2860,4 +2920,12 @@ function getErrorMessage(error: unknown) {
 
 function hasApiErrorCode(error: unknown, code: number): boolean {
   return error instanceof Error && error.message.startsWith(`오류 코드: ${code}`);
+}
+
+function withoutVoteId(voteIds: Set<number>, voteId: number): Set<number> {
+  const next = new Set(voteIds);
+
+  next.delete(voteId);
+
+  return next;
 }

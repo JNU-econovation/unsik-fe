@@ -129,6 +129,17 @@
   margin-top: 20px;
 }
 
+.vote-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.vote-list-item-with-action {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
 .vote-list-card,
 .vote-history-button,
 .vote-member,
@@ -400,6 +411,27 @@
   background: rgba(249, 199, 38, 0.12);
   color: #f9c726;
   font-weight: 800;
+}
+
+.vote-list-delete-button {
+  min-width: 48px;
+  min-height: 48px;
+  border: 1px solid rgba(245, 89, 71, 0.46);
+  border-radius: 18px;
+  background: rgba(245, 89, 71, 0.1);
+  color: #f55947;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.vote-list-delete-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.vote-list-delete-button:focus-visible {
+  outline: 3px solid rgba(245, 200, 41, 0.65);
+  outline-offset: 3px;
 }
 
 .vote-history-divider {
