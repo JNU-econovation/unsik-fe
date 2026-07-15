@@ -217,6 +217,9 @@ Known contract gaps:
   browser's member as submitted locally, but it still waits for
   `GET /api/votes/{voteId}` polling to return `resultMenu` instead of forcing a
   close.
+- OWNER forced close requires at least one submitted ballot. The status screen
+  exposes the action only after the current OWNER submits a ballot; the backend
+  otherwise rejects the request with `409`.
 - Restaurant search returns Kakao Local documents but not rating, price, or
   reviews. Those fields are not rendered.
 - No menu score/reason endpoint exists. The menu detail screen shows only the

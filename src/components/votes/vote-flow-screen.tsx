@@ -1183,6 +1183,11 @@ export function VoteFlowScreen({
 
       showToast('투표를 강제로 중단했어요.');
     } catch (error) {
+      if (hasApiErrorCode(error, 409)) {
+        setApiMessage('아직 제출된 호불호 표가 없어 강제 중단할 수 없어요. 후보에 먼저 투표해 주세요.');
+        return;
+      }
+
       setApiMessage(`투표를 중단하지 못했어요: ${getErrorMessage(error)}`);
     } finally {
       setIsLoading(false);
@@ -1379,7 +1384,7 @@ export function VoteFlowScreen({
           hasSubmittedPreference={hasSubmittedActivePreference}
           isWaitingForPreferenceCompletion={isWaitingForPreferenceCompletion}
           isLoading={isLoading}
-          canForceClose={isCurrentMemberOwner && activeVote?.status !== 'CLOSED'}
+          canForceClose={isCurrentMemberOwner && hasSubmittedActiveBallot && activeVote?.status !== 'CLOSED'}
           members={selectedMembers}
           onBack={() => setStep(hasSubmittedActiveBallot || hasSubmittedActivePreference ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
