@@ -169,6 +169,30 @@ const CUISINE_OPTIONS: Array<{
   { cuisine: 'WESTERN', label: '양식', icon: '🍝', description: '파스타 · 스테이크 · 샐러드', color: '#4dd0e1' },
 ];
 
+const MENU_ICON_RULES: ReadonlyArray<{ keywords: readonly string[]; icon: string }> = [
+  { keywords: ['치킨', '닭강정', '닭튀김', '후라이드', 'chicken'], icon: '🍗' },
+  { keywords: ['피자', 'pizza'], icon: '🍕' },
+  { keywords: ['햄버거', '버거', 'burger'], icon: '🍔' },
+  { keywords: ['핫도그', 'hotdog', 'hot dog'], icon: '🌭' },
+  { keywords: ['샌드위치', '토스트', 'sandwich', 'toast'], icon: '🥪' },
+  { keywords: ['초밥', '스시', 'sushi'], icon: '🍣' },
+  { keywords: ['회', '사시미', 'sashimi'], icon: '🐟' },
+  { keywords: ['만두', '딤섬', '교자', 'dumpling'], icon: '🥟' },
+  { keywords: ['파스타', '스파게티', 'pasta', 'spaghetti'], icon: '🍝' },
+  { keywords: ['라멘', '라면', '우동', '소바', '냉면', '국수', '쌀국수', '팟타이', '짜장', '짬뽕', '마라탕', 'noodle'], icon: '🍜' },
+  { keywords: ['돈까스', '돈가스', '카레', '커리', 'curry'], icon: '🍛' },
+  { keywords: ['김밥', '주먹밥'], icon: '🍙' },
+  { keywords: ['떡볶이', '어묵', '오뎅'], icon: '🍢' },
+  { keywords: ['삼겹살', '베이컨', 'bacon'], icon: '🥓' },
+  { keywords: ['족발', '보쌈'], icon: '🍖' },
+  { keywords: ['제육', '불고기', '갈비', '스테이크', '고기', 'steak'], icon: '🥩' },
+  { keywords: ['찜닭', '닭갈비'], icon: '🍗' },
+  { keywords: ['김치찜', '찜', '전골'], icon: '🥘' },
+  { keywords: ['찌개', '국밥', '감자탕', '설렁탕', '곰탕', '해장국', '수프', '스프', 'soup', 'stew'], icon: '🍲' },
+  { keywords: ['비빔밥', '볶음밥', '덮밥', '리조또', 'rice'], icon: '🍚' },
+  { keywords: ['샐러드', 'salad'], icon: '🥗' },
+];
+
 const CUISINE_STYLE_TOKENS: Record<
   Cuisine,
   {
@@ -855,11 +879,6 @@ export function VoteFlowScreen({
 
     const participantIds = Array.from(selectedMemberIds);
     const participantIdsForRequest = getParticipantIdsForVoteRequest(participantIds, members);
-
-    if (participantIdsForRequest.length === 0) {
-      showToast('방장을 제외한 참여자를 한 명 이상 선택해 주세요.');
-      return;
-    }
 
     const baseVote: ActiveVote = {
       title: voteTitle.trim() || '오늘의 투표',
@@ -1574,8 +1593,8 @@ function VoteSetupView({
 
       <section className="vote-section">
         <div className="vote-label-row">
-          <strong>📍 어디서 먹을지 골라주세요</strong>
-          <span>👑 그룹장 설정</span>
+          <strong>어디서 먹을지 골라주세요</strong>
+          <span>그룹장 설정</span>
         </div>
         <div className="vote-chip-row">
           {placeOptions.map((place) => (
@@ -1593,7 +1612,6 @@ function VoteSetupView({
 
       <section className="vote-section vote-member-section">
         <div className="vote-member-header">
-          <span>👥</span>
           <span>
             <strong>이번 식사 참여자</strong>
             <small>함께하는 멤버를 선택해주세요</small>
@@ -1994,7 +2012,7 @@ function PreferenceView({
                 onClick={() => onToggleExcludedMenu(menu.id)}
                 aria-pressed={isSelected}
               >
-                <span>{getCuisineIcon(menu.cuisine)}</span>
+                <span>{getMenuIcon(menu.name, menu.cuisine)}</span>
                 <strong>{menu.name}</strong>
                 <small>{getCuisineLabel(menu.cuisine)}</small>
                 <b aria-hidden="true">{isSelected ? '✓' : '+'}</b>
@@ -2220,7 +2238,7 @@ function FinalResultView({
         <p>메뉴 정보를 보려면 탭하세요 →</p>
       </button>
 
-      <p className="vote-section-title">📍 추천 식당</p>
+      <p className="vote-section-title">추천 식당</p>
       {isLoading ? <div className="vote-loading-panel">추천 식당을 찾는 중입니다</div> : null}
       {restaurants.length > 0 ? (
         <div className="vote-restaurant-list">
@@ -2235,7 +2253,7 @@ function FinalResultView({
                 <strong>{restaurant.placeName}</strong>
                 <small>{restaurant.categoryName || '음식점'}</small>
               </span>
-              <em>🗺 카카오맵</em>
+              <em>카카오맵</em>
               <b>{restaurant.distance ? `${restaurant.distance}m` : ''}</b>
             </button>
           ))}
@@ -2274,7 +2292,6 @@ function RestaurantDetailView({
     <>
       <VoteNav title="식당 정보" onBack={onBack} />
       <section className="vote-restaurant-header">
-        <span>{finalMenu.icon}</span>
         <div>
           <strong>{restaurant.placeName}</strong>
           <p>{restaurant.categoryName || getCuisineLabel(finalMenu.cuisine)}</p>
@@ -2288,23 +2305,22 @@ function RestaurantDetailView({
         rel="noreferrer"
         aria-label="카카오맵에서 보기"
       >
-        <span>📍</span>
         <strong>{restaurant.placeName}</strong>
-        <em>🗺 카카오맵에서 전체보기 →</em>
+        <em>카카오맵에서 전체보기 →</em>
       </a>
 
       <section className="vote-info-card">
-        <InfoRow icon="📍" label="주소" value={restaurant.roadAddressName || restaurant.addressName || '주소 정보 없음'} />
-        <InfoRow icon="📞" label="전화" value={restaurant.phone || '전화 정보 없음'} />
-        <InfoRow icon="🚶" label="거리" value={restaurant.distance ? `${restaurant.distance}m` : '거리 정보 없음'} />
+        <InfoRow label="주소" value={restaurant.roadAddressName || restaurant.addressName || '주소 정보 없음'} />
+        <InfoRow label="전화" value={restaurant.phone || '전화 정보 없음'} />
+        <InfoRow label="거리" value={restaurant.distance ? `${restaurant.distance}m` : '거리 정보 없음'} />
       </section>
 
       <div className="vote-sticky-row">
         <button className="vote-secondary-button" type="button" onClick={onShare}>
-          📤 공유하기
+          공유하기
         </button>
         <a className="vote-primary-link" href={restaurant.placeUrl || undefined} target="_blank" rel="noreferrer">
-          🗺 길 찾기
+          길 찾기
         </a>
       </div>
     </>
@@ -2414,10 +2430,9 @@ function VoteBlockingView({
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="vote-info-row">
-      <span>{icon}</span>
       <small>{label}</small>
       <p>{value}</p>
     </div>
@@ -2459,15 +2474,22 @@ function toggleSetValue<T>(current: Set<T>, value: T) {
 function toCandidateCard(menu: CandidateMenuResponse): CandidateCard {
   return {
     ...menu,
-    icon: getCuisineIcon(menu.cuisine),
+    icon: getMenuIcon(menu.name, menu.cuisine),
     description: `${getCuisineLabel(menu.cuisine)} 계열의 오늘 후보`,
   };
 }
 
 function getParticipantIdsForVoteRequest(participantIds: number[], members: VoteMember[]): number[] {
   const ownerIds = new Set(members.filter((member) => member.role === 'OWNER').map((member) => member.memberId));
+  const nonOwnerParticipantIds = participantIds.filter((participantId) => !ownerIds.has(participantId));
 
-  return participantIds.filter((participantId) => !ownerIds.has(participantId));
+  if (nonOwnerParticipantIds.length > 0) {
+    return nonOwnerParticipantIds;
+  }
+
+  const selectedOwnerId = participantIds.find((participantId) => ownerIds.has(participantId));
+
+  return selectedOwnerId === undefined ? [] : [selectedOwnerId];
 }
 
 function toMealHistoryItems(votes: VoteSummary[]): MealHistoryItem[] {
@@ -2577,6 +2599,15 @@ function toVoteSummary(vote: VoteDetailResponse, previous?: VoteSummary): VoteSu
 
 function getCuisineIcon(cuisine: Cuisine) {
   return CUISINE_OPTIONS.find((option) => option.cuisine === cuisine)?.icon ?? '🍽️';
+}
+
+function getMenuIcon(name: string, cuisine: Cuisine) {
+  const normalizedName = name.toLocaleLowerCase('ko-KR').replaceAll(/\s+/g, ' ');
+  const matchedRule = MENU_ICON_RULES.find((rule) =>
+    rule.keywords.some((keyword) => normalizedName.includes(keyword)),
+  );
+
+  return matchedRule?.icon ?? getCuisineIcon(cuisine);
 }
 
 function getCuisineLabel(cuisine: Cuisine) {

@@ -165,8 +165,10 @@ The app has installable PWA basics:
   list
 - `POST /api/groups/{groupId}/votes`: vote creation; the backend auto-includes
   the OWNER, so the client omits OWNER ids from `participantMemberIds` when
-  creating votes and requires at least one non-OWNER participant before sending
-  the request. Vote deadlines are sent as local `yyyy-MM-ddTHH:mm:ss` strings.
+  creating multi-member votes. The API requires at least one participant id,
+  so an OWNER-only vote sends the selected OWNER id to satisfy validation; the
+  backend still treats that member as the single auto-included OWNER. Vote
+  deadlines are sent as local `yyyy-MM-ddTHH:mm:ss` strings.
 - `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines and
   allergy/restriction submission
 - `POST /api/votes/{voteId}/recommend?memberId=...`: candidate menus
@@ -184,7 +186,7 @@ Available Vote endpoints not currently used:
 
 - `POST /api/votes/{voteId}/recommend/force?memberId=...`: Swagger marks this
   as OWNER forced recommendation, so the frontend keeps the normal all-member
-  preference flow for now.
+  preference flow.
 - `POST /api/votes/{voteId}/close?memberId=...`: Swagger marks this as OWNER
   forced close, so the frontend does not call it from the normal ballot flow.
 - `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the

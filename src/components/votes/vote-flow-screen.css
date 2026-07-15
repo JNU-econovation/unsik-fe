@@ -540,7 +540,7 @@
   min-height: 44px;
 }
 
-.vote-member-header > span:nth-child(2) {
+.vote-member-header > span:first-child {
   display: grid;
   flex: 1;
 }
@@ -1607,7 +1607,6 @@
 
 .vote-restaurant-header {
   display: flex;
-  gap: 14px;
   align-items: center;
   min-height: 84px;
   margin-top: 18px;
@@ -1615,16 +1614,6 @@
   border: 1px solid rgba(245, 200, 41, 0.25);
   border-radius: 14px;
   background: #151332;
-}
-
-.vote-restaurant-header > span {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  border-radius: 12px;
-  background: #1d1b3d;
-  font-size: 26px;
 }
 
 .vote-restaurant-header div {
@@ -1677,10 +1666,6 @@
   background-size: 44px 28px;
   color: #ffffff;
   text-decoration: none;
-}
-
-.vote-map-panel span {
-  font-size: 28px;
 }
 
 .vote-map-panel strong {
@@ -2183,7 +2168,6 @@
 
 .vote-list-icon,
 .vote-oracle-image,
-.vote-restaurant-header > span,
 .vote-score-donut,
 .vote-score-row div,
 .vote-menu-search-item b,
@@ -2974,7 +2958,6 @@
 
 :root[data-unsik-theme='dark'] .vote-list-icon,
 :root[data-unsik-theme='dark'] .vote-oracle-image,
-:root[data-unsik-theme='dark'] .vote-restaurant-header > span,
 :root[data-unsik-theme='dark'] .vote-score-donut,
 :root[data-unsik-theme='dark'] .vote-score-row div,
 :root[data-unsik-theme='dark'] .vote-menu-search-item b,
