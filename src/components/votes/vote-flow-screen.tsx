@@ -641,11 +641,15 @@ export function VoteFlowScreen({
     setCandidates(apiCandidates);
     setActiveCardIndex(0);
     setBallotChoices({});
+    setActiveVote((current) => (current ? { ...current, status: 'VOTING' } : current));
+    setVoteSummaries((current) =>
+      current.map((summary) => ({ ...summary, status: summary.voteId === activeVote?.id ? 'VOTING' : summary.status })),
+    );
     setApiMessage(null);
     setStep('cards');
 
     return true;
-  }, []);
+  }, [activeVote?.id]);
 
   const markPreferenceSubmitted = useCallback(
     (voteId: number) => {
@@ -769,6 +773,7 @@ export function VoteFlowScreen({
         setVoteSummaries((current) =>
           current.map((summary) => (summary.voteId === activeVote.id ? toVoteSummary(vote, summary) : summary)),
         );
+        setActiveVote((current) => (current ? { ...current, status: vote.status } : current));
 
         if (vote.resultMenu) {
           setFinalMenu(toCandidateCard(vote.resultMenu));
@@ -1056,11 +1061,6 @@ export function VoteFlowScreen({
       return;
     }
 
-    if (!isCurrentMemberOwner) {
-      setVoteListMessage('그룹장만 투표를 삭제할 수 있어요.');
-      return;
-    }
-
     setIsLoadingVoteSummaries(true);
     setVoteListMessage(null);
 
@@ -1144,15 +1144,39 @@ export function VoteFlowScreen({
       return;
     }
 
-    if (!window.confirm('진행 중인 투표를 지금 강제로 중단할까요? 제출된 투표만으로 결과가 정해질 수 있어요.')) {
-      return;
-    }
-
     const voteId = activeVote.id;
     setIsLoading(true);
     setApiMessage(null);
 
     try {
+      const currentVote = await getVote({ memberId: context.memberId, token: context.token }, voteId);
+
+      setVoteSummaries((current) =>
+        current.map((summary) => (summary.voteId === voteId ? toVoteSummary(currentVote, summary) : summary)),
+      );
+      setActiveVote((current) => (current ? { ...current, status: currentVote.status } : current));
+
+      if (currentVote.status === 'CLOSED') {
+        if (currentVote.resultMenu) {
+          setFinalMenu(toCandidateCard(currentVote.resultMenu));
+          setStep('final');
+        } else {
+          setStep('list');
+        }
+
+        showToast('이미 마감된 투표예요.');
+        return;
+      }
+
+      if (currentVote.status !== 'VOTING') {
+        setApiMessage('후보 추천이 끝난 VOTING 단계에서만 강제 중단할 수 있어요.');
+        return;
+      }
+
+      if (!window.confirm('진행 중인 투표를 지금 강제로 중단할까요? 제출된 투표만으로 결과가 정해질 수 있어요.')) {
+        return;
+      }
+
       await closeVote({ memberId: context.memberId, token: context.token }, voteId);
       const closedVote = await getVote({ memberId: context.memberId, token: context.token }, voteId);
       const closedSummary = toVoteSummary(
@@ -1175,7 +1199,7 @@ export function VoteFlowScreen({
       showToast('투표를 강제로 중단했어요.');
     } catch (error) {
       if (hasApiErrorCode(error, 409)) {
-        setApiMessage('아직 제출된 호불호 표가 없어 강제 중단할 수 없어요. 후보에 먼저 투표해 주세요.');
+        setApiMessage('투표 단계가 변경되어 강제 중단하지 못했어요. 목록에서 투표를 다시 열어 상태를 확인해 주세요.');
         return;
       }
 
@@ -1236,6 +1260,7 @@ export function VoteFlowScreen({
       setVoteSummaries((current) =>
         current.map((summary) => (summary.voteId === voteId ? toVoteSummary(voteAfterBallot, summary) : summary)),
       );
+      setActiveVote((current) => (current ? { ...current, status: voteAfterBallot.status } : current));
 
       if (voteAfterBallot.resultMenu) {
         setFinalMenu(toCandidateCard(voteAfterBallot.resultMenu));
@@ -1336,7 +1361,6 @@ export function VoteFlowScreen({
           memberName={memberName}
           onBack={onBackToRooms}
           onCreate={() => resetForNewVote('오늘 점심')}
-          canDeleteVotes={isCurrentMemberOwner}
           onDeleteVote={(vote) => void handleDeleteVoteFromList(vote)}
           onSelectVote={handleSelectVote}
           isLoading={isLoadingVoteSummaries}
@@ -1375,7 +1399,7 @@ export function VoteFlowScreen({
           hasSubmittedPreference={hasSubmittedActivePreference}
           isWaitingForPreferenceCompletion={isWaitingForPreferenceCompletion}
           isLoading={isLoading}
-          canForceClose={isCurrentMemberOwner && hasSubmittedActiveBallot && activeVote?.status !== 'CLOSED'}
+          canForceClose={isCurrentMemberOwner && hasSubmittedActiveBallot && activeVote?.status === 'VOTING'}
           members={selectedMembers}
           onBack={() => setStep(hasSubmittedActiveBallot || hasSubmittedActivePreference ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
@@ -1588,7 +1612,6 @@ function VoteListView({
   message,
   onBack,
   onCreate,
-  canDeleteVotes,
   onDeleteVote,
   onSelectVote,
 }: {
@@ -1599,7 +1622,6 @@ function VoteListView({
   message: string | null;
   onBack: () => void;
   onCreate: () => void;
-  canDeleteVotes: boolean;
   onDeleteVote: (vote: VoteSummary) => void;
   onSelectVote: (vote: VoteSummary) => void;
 }) {
@@ -1623,12 +1645,7 @@ function VoteListView({
       {votes.length > 0 ? (
         <div className="vote-list-stack">
           {votes.map((vote) => (
-            <div
-              className={canDeleteVotes
-                ? 'vote-list-item vote-list-item-with-action'
-                : 'vote-list-item'}
-              key={vote.id}
-            >
+            <div className="vote-list-item vote-list-item-with-action" key={vote.id}>
               <button className="vote-list-card" type="button" onClick={() => onSelectVote(vote)}>
                 <span className="vote-list-icon">🗳️</span>
                 <span>
@@ -1637,33 +1654,31 @@ function VoteListView({
                 </span>
                 <em>{getVoteStatusLabel(vote.status)}</em>
               </button>
-              {canDeleteVotes ? (
-                <div className="vote-list-menu">
-                  <button
-                    className="vote-list-menu-button"
-                    type="button"
-                    aria-label={`${vote.title} 투표 메뉴`}
-                    aria-expanded={openMenuVoteId === vote.voteId}
-                    disabled={isLoading}
-                    onClick={() => setOpenMenuVoteId((current) => current === vote.voteId ? null : vote.voteId)}
-                  >
-                    <span aria-hidden="true">⋮</span>
-                  </button>
-                  {openMenuVoteId === vote.voteId ? (
-                    <div className="vote-list-menu-popover">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenMenuVoteId(null);
-                          onDeleteVote(vote);
-                        }}
-                      >
-                        삭제하기
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className="vote-list-menu">
+                <button
+                  className="vote-list-menu-button"
+                  type="button"
+                  aria-label={`${vote.title} 투표 메뉴`}
+                  aria-expanded={openMenuVoteId === vote.voteId}
+                  disabled={isLoading}
+                  onClick={() => setOpenMenuVoteId((current) => current === vote.voteId ? null : vote.voteId)}
+                >
+                  <span aria-hidden="true">⋮</span>
+                </button>
+                {openMenuVoteId === vote.voteId ? (
+                  <div className="vote-list-menu-popover">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenMenuVoteId(null);
+                        onDeleteVote(vote);
+                      }}
+                    >
+                      삭제하기
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
