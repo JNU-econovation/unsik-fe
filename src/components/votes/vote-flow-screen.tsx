@@ -1050,23 +1050,14 @@ export function VoteFlowScreen({
     }
   };
 
-  const handleDeleteClosedVote = async (vote: VoteSummary) => {
+  const handleDeleteVoteFromList = async (vote: VoteSummary) => {
     if (!context.memberId) {
-      setVoteListMessage('로그인 정보를 확인할 수 없어 마감된 투표를 삭제할 수 없어요.');
+      setVoteListMessage('로그인 정보를 확인할 수 없어 투표를 삭제할 수 없어요.');
       return;
     }
 
     if (!isCurrentMemberOwner) {
-      setVoteListMessage('그룹장만 마감된 투표를 삭제할 수 있어요.');
-      return;
-    }
-
-    if (vote.status !== 'CLOSED') {
-      setVoteListMessage('마감된 투표만 목록에서 삭제할 수 있어요.');
-      return;
-    }
-
-    if (!window.confirm(`'${vote.title}' 투표 기록을 삭제할까요? 삭제한 기록은 되돌릴 수 없어요.`)) {
+      setVoteListMessage('그룹장만 투표를 삭제할 수 있어요.');
       return;
     }
 
@@ -1078,9 +1069,9 @@ export function VoteFlowScreen({
       setVoteSummaries((current) => current.filter((summary) => summary.voteId !== vote.voteId));
       setSubmittedBallotVoteIds((current) => withoutVoteId(current, vote.voteId));
       setSubmittedPreferenceVoteIds((current) => withoutVoteId(current, vote.voteId));
-      showToast('마감된 투표를 삭제했어요.');
+      showToast('투표를 삭제했어요.');
     } catch (error) {
-      setVoteListMessage(`마감된 투표를 삭제하지 못했어요: ${getErrorMessage(error)}`);
+      setVoteListMessage(`투표를 삭제하지 못했어요: ${getErrorMessage(error)}`);
     } finally {
       setIsLoadingVoteSummaries(false);
     }
@@ -1345,8 +1336,8 @@ export function VoteFlowScreen({
           memberName={memberName}
           onBack={onBackToRooms}
           onCreate={() => resetForNewVote('오늘 점심')}
-          canDeleteClosedVotes={isCurrentMemberOwner}
-          onDeleteClosedVote={(vote) => void handleDeleteClosedVote(vote)}
+          canDeleteVotes={isCurrentMemberOwner}
+          onDeleteVote={(vote) => void handleDeleteVoteFromList(vote)}
           onSelectVote={handleSelectVote}
           isLoading={isLoadingVoteSummaries}
           message={voteListMessage}
@@ -1597,8 +1588,8 @@ function VoteListView({
   message,
   onBack,
   onCreate,
-  canDeleteClosedVotes,
-  onDeleteClosedVote,
+  canDeleteVotes,
+  onDeleteVote,
   onSelectVote,
 }: {
   groupId: string;
@@ -1608,10 +1599,11 @@ function VoteListView({
   message: string | null;
   onBack: () => void;
   onCreate: () => void;
-  canDeleteClosedVotes: boolean;
-  onDeleteClosedVote: (vote: VoteSummary) => void;
+  canDeleteVotes: boolean;
+  onDeleteVote: (vote: VoteSummary) => void;
   onSelectVote: (vote: VoteSummary) => void;
 }) {
+  const [openMenuVoteId, setOpenMenuVoteId] = useState<number | null>(null);
   const hasLoadError = Boolean(message?.includes('실패'));
   const emptyTitle = isLoading
     ? '투표 목록을 불러오는 중입니다'
@@ -1632,7 +1624,7 @@ function VoteListView({
         <div className="vote-list-stack">
           {votes.map((vote) => (
             <div
-              className={canDeleteClosedVotes && vote.status === 'CLOSED'
+              className={canDeleteVotes
                 ? 'vote-list-item vote-list-item-with-action'
                 : 'vote-list-item'}
               key={vote.id}
@@ -1645,16 +1637,32 @@ function VoteListView({
                 </span>
                 <em>{getVoteStatusLabel(vote.status)}</em>
               </button>
-              {canDeleteClosedVotes && vote.status === 'CLOSED' ? (
-                <button
-                  className="vote-list-delete-button"
-                  type="button"
-                  aria-label={`${vote.title} 마감 투표 삭제`}
-                  disabled={isLoading}
-                  onClick={() => onDeleteClosedVote(vote)}
-                >
-                  <span aria-hidden="true">🗑️</span>
-                </button>
+              {canDeleteVotes ? (
+                <div className="vote-list-menu">
+                  <button
+                    className="vote-list-menu-button"
+                    type="button"
+                    aria-label={`${vote.title} 투표 메뉴`}
+                    aria-expanded={openMenuVoteId === vote.voteId}
+                    disabled={isLoading}
+                    onClick={() => setOpenMenuVoteId((current) => current === vote.voteId ? null : vote.voteId)}
+                  >
+                    <span aria-hidden="true">⋮</span>
+                  </button>
+                  {openMenuVoteId === vote.voteId ? (
+                    <div className="vote-list-menu-popover">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenuVoteId(null);
+                          onDeleteVote(vote);
+                        }}
+                      >
+                        삭제하기
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ))}

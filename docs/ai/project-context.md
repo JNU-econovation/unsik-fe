@@ -182,8 +182,8 @@ The app has installable PWA basics:
 - `POST /api/votes/{voteId}/close?memberId=...`: OWNER-only forced close from
   the vote status screen; the frontend reloads vote detail after closing and
   opens the result when the backend returns `resultMenu`
-- `DELETE /api/votes/{voteId}?memberId=...`: vote cancellation and OWNER-only
-  deletion of closed votes from the group vote list
+- `DELETE /api/votes/{voteId}?memberId=...`: OWNER-only deletion of any vote
+  state from the group vote list's overflow menu
 - `GET /api/restaurants?menu=...&voteId=...&page=...`: restaurant search
 
 Available Vote endpoints not currently used:
