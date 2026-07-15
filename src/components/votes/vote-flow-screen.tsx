@@ -13,9 +13,11 @@ import type {
   School,
   SchoolResponse,
   VoteDetailResponse,
+  VoteStatus,
   VoteSummaryResponse,
 } from '@/services/backend';
 import {
+  closeVote,
   createVote,
   deleteVote,
   getVote,
@@ -76,6 +78,7 @@ type BallotChoice = 'LIKE' | 'DISLIKE';
 type ActiveVote = {
   id?: number;
   title: string;
+  status: VoteStatus;
   placeLabel: string;
   school: School;
   participantIds: number[];
@@ -85,7 +88,7 @@ type VoteSummary = {
   id: string;
   voteId: number;
   title: string;
-  status: string;
+  status: VoteStatus;
   deadline: string;
   meta: string;
   placeLabel: string;
@@ -321,6 +324,9 @@ export function VoteFlowScreen({
 
   const selectedPlace = placeOptions.find((place) => place.key === selectedPlaceKey) ?? placeOptions[1] ?? PLACE_OPTIONS[1];
   const selectedMembers = members.filter((member) => selectedMemberIds.has(member.memberId));
+  const isCurrentMemberOwner = members.some(
+    (member) => member.memberId === memberId && member.role === 'OWNER',
+  );
   const mealHistoryItems = useMemo(() => toMealHistoryItems(voteSummaries), [voteSummaries]);
   const currentCandidate = candidates[activeCardIndex] ?? null;
   const likedCandidate = candidates.find((candidate) => ballotChoices[candidate.menuId] === 'LIKE');
@@ -769,7 +775,7 @@ export function VoteFlowScreen({
           setVoteSummaries((current) =>
             current.map((summary) =>
               summary.voteId === activeVote.id
-                ? { ...summary, status: getVoteStatusLabel(vote.status), resultMenu: vote.resultMenu }
+                ? { ...summary, status: vote.status, resultMenu: vote.resultMenu }
                 : summary,
             ),
           );
@@ -882,6 +888,7 @@ export function VoteFlowScreen({
 
     const baseVote: ActiveVote = {
       title: voteTitle.trim() || '오늘의 투표',
+      status: 'RECOMMENDING',
       placeLabel: selectedPlace.label,
       school: selectedPlace.school,
       participantIds,
@@ -889,7 +896,7 @@ export function VoteFlowScreen({
 
     const addVoteSummary = (
       voteId: number,
-      status: string,
+      status: VoteStatus,
       deadline: string,
       resultMenu: CandidateMenuResponse | null,
     ) => {
@@ -935,7 +942,7 @@ export function VoteFlowScreen({
       });
       addVoteSummary(
         createdVote.id,
-        getVoteStatusLabel(createdVote.status),
+        createdVote.status,
         createdVote.deadline || deadline,
         createdVote.resultMenu,
       );
@@ -964,6 +971,7 @@ export function VoteFlowScreen({
       setActiveVote({
         id: nextSummary.voteId,
         title: nextSummary.title,
+        status: nextSummary.status,
         placeLabel: nextSummary.placeLabel,
         school: nextSummary.school,
         participantIds: nextSummary.participantIds,
@@ -988,6 +996,7 @@ export function VoteFlowScreen({
       setActiveVote({
         id: vote.voteId,
         title: vote.title,
+        status: vote.status,
         placeLabel: vote.placeLabel,
         school: vote.school,
         participantIds: vote.participantIds,
@@ -1097,6 +1106,53 @@ export function VoteFlowScreen({
     }
   };
 
+  const handleForceCloseVote = async () => {
+    if (!activeVote?.id || !context.memberId) {
+      setApiMessage('투표 정보 또는 로그인 정보를 확인할 수 없어 투표를 중단할 수 없어요.');
+      return;
+    }
+
+    if (!isCurrentMemberOwner) {
+      setApiMessage('그룹장만 투표를 강제로 중단할 수 있어요.');
+      return;
+    }
+
+    if (!window.confirm('진행 중인 투표를 지금 강제로 중단할까요? 제출된 투표만으로 결과가 정해질 수 있어요.')) {
+      return;
+    }
+
+    const voteId = activeVote.id;
+    setIsLoading(true);
+    setApiMessage(null);
+
+    try {
+      await closeVote({ memberId: context.memberId, token: context.token }, voteId);
+      const closedVote = await getVote({ memberId: context.memberId, token: context.token }, voteId);
+      const closedSummary = toVoteSummary(
+        closedVote,
+        voteSummaries.find((summary) => summary.voteId === voteId),
+      );
+
+      setVoteSummaries((current) =>
+        current.map((summary) => (summary.voteId === voteId ? closedSummary : summary)),
+      );
+      setActiveVote((current) => (current ? { ...current, status: closedVote.status } : current));
+
+      if (closedVote.resultMenu) {
+        setFinalMenu(toCandidateCard(closedVote.resultMenu));
+        setStep('final');
+      } else {
+        setStep('list');
+      }
+
+      showToast('투표를 강제로 중단했어요.');
+    } catch (error) {
+      setApiMessage(`투표를 중단하지 못했어요: ${getErrorMessage(error)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCandidateVote = async (choice: BallotChoice) => {
     if (!currentCandidate) {
       setApiMessage('추천 후보가 없어 호불호 투표를 진행할 수 없어요.');
@@ -1172,7 +1228,7 @@ export function VoteFlowScreen({
           setVoteSummaries((current) =>
             current.map((summary) =>
               summary.voteId === voteId
-                ? { ...summary, status: getVoteStatusLabel(vote.status), resultMenu: vote.resultMenu }
+                ? { ...summary, status: vote.status, resultMenu: vote.resultMenu }
                 : summary,
             ),
           );
@@ -1285,9 +1341,11 @@ export function VoteFlowScreen({
           hasSubmittedPreference={hasSubmittedActivePreference}
           isWaitingForPreferenceCompletion={isWaitingForPreferenceCompletion}
           isLoading={isLoading}
+          canForceClose={isCurrentMemberOwner && activeVote?.status !== 'CLOSED'}
           members={selectedMembers}
           onBack={() => setStep(hasSubmittedActiveBallot || hasSubmittedActivePreference ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
+          onForceClose={() => void handleForceCloseVote()}
           onOpenHistory={() => setStep('history')}
           onNext={() => {
             if (hasSubmittedActiveBallot) {
@@ -1532,7 +1590,7 @@ function VoteListView({
                 <strong>{vote.title}</strong>
                 <small>{vote.meta}</small>
               </span>
-              <em>{vote.status}</em>
+              <em>{getVoteStatusLabel(vote.status)}</em>
             </button>
           ))}
         </div>
@@ -1665,10 +1723,12 @@ function VoteStatusView({
   hasSubmittedPreference,
   isWaitingForPreferenceCompletion,
   isLoading,
+  canForceClose,
   members,
   onBack,
   onNotify,
   onCancel,
+  onForceClose,
   onOpenHistory,
   onNext,
 }: {
@@ -1678,10 +1738,12 @@ function VoteStatusView({
   hasSubmittedPreference: boolean;
   isWaitingForPreferenceCompletion: boolean;
   isLoading: boolean;
+  canForceClose: boolean;
   members: VoteMember[];
   onBack: () => void;
   onNotify: () => void;
   onCancel: () => void;
+  onForceClose: () => void;
   onOpenHistory: () => void;
   onNext: () => void;
 }) {
@@ -1725,6 +1787,12 @@ function VoteStatusView({
           {isLoading ? '삭제 중' : '✕ 투표 취소'}
         </button>
       </div>
+
+      {canForceClose ? (
+        <button className="vote-force-close-button" type="button" disabled={isLoading} onClick={onForceClose}>
+          {isLoading ? '중단하는 중' : '■ 투표 강제 중단'}
+        </button>
+      ) : null}
 
       <button className="vote-history-button" type="button" onClick={onOpenHistory}>
         <span aria-hidden="true">↺</span>
@@ -2569,7 +2637,7 @@ function toVoteSummaryFromResponse(vote: VoteSummaryResponse): VoteSummary {
     id: String(vote.voteId),
     voteId: vote.voteId,
     title: vote.title,
-    status: getVoteStatusLabel(vote.status),
+    status: vote.status,
     deadline: vote.deadline,
     meta: `${placeLabel} · 참여자 ${vote.participantCount}명`,
     placeLabel,
@@ -2587,7 +2655,7 @@ function toVoteSummary(vote: VoteDetailResponse, previous?: VoteSummary): VoteSu
     id: String(vote.voteId),
     voteId: vote.voteId,
     title: vote.title,
-    status: getVoteStatusLabel(vote.status),
+    status: vote.status,
     deadline: previous?.deadline ?? '',
     meta: `${placeLabel} · 참여자 ${participantIds.length}명`,
     placeLabel,

@@ -379,6 +379,16 @@ export async function getVote(
   return parseVoteDetailResponse(value);
 }
 
+export async function closeVote(
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  voteId: number,
+) {
+  await requestBackend(`/api/votes/${voteId}/close?memberId=${context.memberId}`, {
+    method: 'POST',
+    token: context.token,
+  });
+}
+
 export async function deleteVote(
   context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
   voteId: number,

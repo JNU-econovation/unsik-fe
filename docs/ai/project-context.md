@@ -179,6 +179,9 @@ The app has installable PWA basics:
   `resultMenu`
 - `GET /api/votes/{voteId}/pending-members?memberId=...`: preference pending
   members for status-screen profile check marks
+- `POST /api/votes/{voteId}/close?memberId=...`: OWNER-only forced close from
+  the vote status screen; the frontend reloads vote detail after closing and
+  opens the result when the backend returns `resultMenu`
 - `DELETE /api/votes/{voteId}?memberId=...`: vote cancellation/deletion
 - `GET /api/restaurants?menu=...&voteId=...&page=...`: restaurant search
 
@@ -187,8 +190,6 @@ Available Vote endpoints not currently used:
 - `POST /api/votes/{voteId}/recommend/force?memberId=...`: Swagger marks this
   as OWNER forced recommendation, so the frontend keeps the normal all-member
   preference flow.
-- `POST /api/votes/{voteId}/close?memberId=...`: Swagger marks this as OWNER
-  forced close, so the frontend does not call it from the normal ballot flow.
 - `GET /api/votes/my?memberId=...`: replaced in the vote list screen by the
   group-scoped `GET /api/groups/{groupId}/votes?memberId=...` endpoint.
 Known contract gaps:
