@@ -2352,80 +2352,44 @@ function CardVoteView({
   onBack: () => void;
   onVote: (choice: BallotChoice) => void;
 }) {
-  const candidateArtwork = getMenuArtwork(candidate.name);
-  const hasFigmaCardStage = normalizeMenuSearchText(candidate.name).includes('갈비탕');
-
   return (
     <>
       <VoteNav title="카드 뽑기" onBack={onBack} right={`${activeCardIndex + 1} / ${candidates.length}`} />
-      {hasFigmaCardStage ? (
-        <>
-          <section className="vote-pick-exact-stage" aria-label={`${candidate.name} 카드 선택`}>
-            <img className="vote-pick-exact-scene" src={galbitangCardImage} alt={`${candidate.name} 운세 카드`} />
-            <img className="vote-pick-exact-next-card" src={gukbapCardImage} alt="다음 후보 카드 미리보기" />
-            <button
-              className="vote-pick-exact-choice vote-pick-exact-dislike"
-              type="button"
-              disabled={isLoading}
-              onClick={() => onVote('DISLIKE')}
-              aria-label={`${candidate.name} 별로`}
-            />
-            <button
-              className="vote-pick-exact-choice vote-pick-exact-like"
-              type="button"
-              disabled={isLoading}
-              onClick={() => onVote('LIKE')}
-              aria-label={`${candidate.name} 좋아`}
-            />
-          </section>
-          <div className="vote-api-note vote-card-exact-hint">← 왼쪽으로 밀면 별로야 · 오른쪽으로 밀면 좋아! →</div>
-          <div className="vote-card-exact-cta">{candidates.length}장을 모두 골라야 결과를 볼 수 있어요</div>
-        </>
-      ) : (
-        <>
-          <div className="vote-card-progress" style={{ gridTemplateColumns: `repeat(${candidates.length}, 1fr)` }}>
-            {candidates.map((item, index) => (
-              <span className={index <= activeCardIndex ? 'vote-card-progress-active' : ''} key={item.menuId} />
-            ))}
-          </div>
+      <div className="vote-card-progress" style={{ gridTemplateColumns: `repeat(${candidates.length}, 1fr)` }}>
+        {candidates.map((item, index) => (
+          <span className={index <= activeCardIndex ? 'vote-card-progress-active' : ''} key={item.menuId} />
+        ))}
+      </div>
 
-          <section className="vote-pick-layout">
-            <article className="vote-menu-card">
-              <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
-              <div className={candidateArtwork ? 'vote-menu-icon vote-menu-artwork' : 'vote-menu-icon'}>
-                {candidateArtwork ? (
-                  <img src={candidateArtwork.src} alt="" style={{ objectPosition: candidateArtwork.position }} />
-                ) : (
-                  candidate.icon
-                )}
-              </div>
-              <strong>{candidate.name}</strong>
-              <p>{candidate.description}</p>
-              <em># {getCuisineLabel(candidate.cuisine)}</em>
-            </article>
-            <div className="vote-card-stack-preview">
-              <span>✦</span>
-              <small>남은 카드 {Math.max(candidates.length - activeCardIndex - 1, 0)}장</small>
-            </div>
-          </section>
+      <section className="vote-pick-layout">
+        <article className="vote-menu-card">
+          <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
+          <div className="vote-menu-icon">{candidate.icon}</div>
+          <strong>{candidate.name}</strong>
+          <p>{candidate.description}</p>
+          <em># {getCuisineLabel(candidate.cuisine)}</em>
+        </article>
+        <div className="vote-card-stack-preview">
+          <span>✦</span>
+          <small>남은 카드 {Math.max(candidates.length - activeCardIndex - 1, 0)}장</small>
+        </div>
+      </section>
 
-          <header className="vote-centered-header vote-card-question">
-            <strong>오늘 이 음식은 어때요?</strong>
-            <p>오늘 {candidate.name} 땡기면 좋아를 눌러주세요</p>
-          </header>
+      <header className="vote-centered-header vote-card-question">
+        <strong>오늘 이 음식은 어때요?</strong>
+        <p>오늘 {candidate.name} 땡기면 좋아를 눌러주세요</p>
+      </header>
 
-          <div className="vote-like-row">
-            <button className="vote-dislike-button" type="button" disabled={isLoading} onClick={() => onVote('DISLIKE')}>
-              별로
-            </button>
-            <button className="vote-like-button" type="button" disabled={isLoading} onClick={() => onVote('LIKE')}>
-              좋아
-            </button>
-          </div>
+      <div className="vote-like-row">
+        <button className="vote-dislike-button" type="button" disabled={isLoading} onClick={() => onVote('DISLIKE')}>
+          별로
+        </button>
+        <button className="vote-like-button" type="button" disabled={isLoading} onClick={() => onVote('LIKE')}>
+          좋아
+        </button>
+      </div>
 
-          <div className="vote-api-note">← 왼쪽은 별로 · 오른쪽은 좋아</div>
-        </>
-      )}
+      <div className="vote-api-note">← 왼쪽은 별로 · 오른쪽은 좋아</div>
       <ApiMessage message={apiMessage} />
     </>
   );
