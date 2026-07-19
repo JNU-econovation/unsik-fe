@@ -32,8 +32,11 @@ local reveal/confirmation screen. Confirming there submits the candidate
 ballots; after submission, the same status screen polls vote detail until
 `resultMenu` appears and then opens the final result.
 
-The preference screen searches the backend menu catalog by normalized menu or
-cuisine text, so spacing differences do not block matches. It provides an
+The preference screen lazily requests `GET /api/menus` when the user first types
+a menu exclusion search. The backend currently exposes only a full-catalog
+endpoint, so the frontend filters that response by normalized menu or cuisine
+text and caches it for subsequent input. Spacing differences do not block
+matches. It provides an
 in-place retry when the catalog request fails or exceeds a ten-second timeout,
 and explains that selecting a
 specific menu excludes its cuisine because the preference API accepts cuisines,
@@ -113,6 +116,10 @@ Current placeholder variables:
   fallback when the backend login-URL endpoint is unavailable
 - `VITE_KAKAO_REDIRECT_URI`: Kakao redirect URI; defaults in code to
   `/auth/kakao/callback` on the current origin when omitted
+
+During Vite development, browser API requests use same-origin `/api/*` paths and
+`vite.config.ts` proxies them to `VITE_API_BASE_URL`. This prevents backend CORS
+allowlists from breaking local fallback ports such as `localhost:5174`.
 
 ## Auth
 
@@ -200,7 +207,8 @@ The app has installable PWA basics:
 - `DELETE /api/groups/{groupId}?memberId=...`: group deletion
 - `PATCH /api/groups/{groupId}?memberId=...`: room rename
 - `GET /api/groups/{groupId}/members?memberId=...`: vote setup participants
-- `GET /api/menus`: searchable menu catalog on the preference screen
+- `GET /api/menus`: full menu catalog, requested lazily from the preference
+  search and filtered client-side because the endpoint has no search parameter
 - `GET /api/schools`: supported vote location chips, with static fallback
 - `GET /api/groups/{groupId}/votes?memberId=...`: group-scoped vote summary
   list

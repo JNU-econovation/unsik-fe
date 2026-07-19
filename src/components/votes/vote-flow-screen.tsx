@@ -320,6 +320,7 @@ export function VoteFlowScreen({
   const [menuSearch, setMenuSearch] = useState('');
   const [menuCatalog, setMenuCatalog] = useState<MenuResponse[]>([]);
   const [menuCatalogStatus, setMenuCatalogStatus] = useState<MenuCatalogStatus>('idle');
+  const [menuCatalogRequestKey, setMenuCatalogRequestKey] = useState(0);
   const [candidates, setCandidates] = useState<CandidateCard[]>([]);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [ballotChoices, setBallotChoices] = useState<Record<number, BallotChoice>>({});
@@ -544,8 +545,10 @@ export function VoteFlowScreen({
     };
   }, [hasBackendGroup, memberId, numericGroupId, token]);
 
+  const shouldLoadMenuCatalog = step === 'preference' && Boolean(normalizeMenuSearchText(menuSearch));
+
   useEffect(() => {
-    if (step !== 'preference' || menuCatalogStatus !== 'idle') {
+    if (!shouldLoadMenuCatalog || menuCatalogStatus === 'loaded') {
       return undefined;
     }
 
@@ -578,7 +581,7 @@ export function VoteFlowScreen({
     return () => {
       isCurrent = false;
     };
-  }, [menuCatalogStatus, step]);
+  }, [menuCatalogRequestKey, shouldLoadMenuCatalog]);
 
   useEffect(() => {
     if (step !== 'status' || !activeVote?.id || !context.memberId) {
@@ -1403,6 +1406,7 @@ export function VoteFlowScreen({
   const retryMenuCatalog = () => {
     setMenuCatalogStatus('idle');
     setApiMessage(null);
+    setMenuCatalogRequestKey((current) => current + 1);
   };
 
   const handleToggleRestriction = (option: (typeof RESTRICTION_OPTIONS)[number]) => {

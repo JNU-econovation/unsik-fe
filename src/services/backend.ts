@@ -129,7 +129,8 @@ type RequestOptions = {
 export const AUTH_EXPIRED_EVENT = 'unsik:auth-expired';
 
 export function createApiUrl(path: `/${string}`, params?: Record<string, string | number | undefined>): string {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  const baseUrl = import.meta.env.DEV ? '' : configuredBaseUrl;
   const url = new URL(`${baseUrl}${path}`, window.location.origin);
 
   Object.entries(params ?? {}).forEach(([key, value]) => {

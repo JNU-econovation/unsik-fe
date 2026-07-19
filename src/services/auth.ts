@@ -163,7 +163,8 @@ export function loadAuthSession(): AuthSession | null {
 }
 
 function createApiUrl(path: `/${string}`): string {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  const baseUrl = import.meta.env.DEV ? '' : configuredBaseUrl;
 
   return `${baseUrl}${path}`;
 }
