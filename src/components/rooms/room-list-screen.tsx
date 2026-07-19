@@ -48,7 +48,7 @@ const MAX_MEMBER_OPTIONS = [4, 5, 6, 8] as const;
 const MEMBER_COLORS = ['#9e6bf5', '#f55947', '#4785f5', '#33c766', '#f5c829', '#21c2a9'] as const;
 
 const MENU_ITEMS: Array<{ action: MenuAction; icon: string; label: string; kind: 'normal' | 'danger' }> = [
-  { action: 'copy', icon: '🔗', label: '코드 복사', kind: 'normal' },
+  { action: 'copy', icon: '⧉', label: '코드 복사', kind: 'normal' },
   { action: 'rename', icon: '✎', label: '이름 변경', kind: 'normal' },
   { action: 'delete', icon: '🗑️', label: '방 삭제', kind: 'danger' },
 ];
@@ -188,7 +188,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
   const [hasLoadedRooms, setHasLoadedRooms] = useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => readInitialInviteCode());
   const [isJoiningInvite, setIsJoiningInvite] = useState(false);
-  const [roomSourceLabel, setRoomSourceLabel] = useState('동기화됨');
   const [roomListError, setRoomListError] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const pendingInviteNoticeRef = useRef<string | null>(null);
@@ -216,7 +215,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
   useEffect(() => {
     if (!memberId) {
       setRooms([]);
-      setRoomSourceLabel('로그인 필요');
       setRoomListError(null);
       setHasLoadedRooms(false);
       return undefined;
@@ -242,7 +240,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         }
 
         setRooms(nextRooms);
-        setRoomSourceLabel('동기화됨');
         setRoomListError(null);
       })
       .catch((error: unknown) => {
@@ -251,7 +248,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         }
 
         setRooms([]);
-        setRoomSourceLabel('오류');
         setRoomListError(getErrorMessage(error));
         showToast(`그룹 목록을 불러오지 못했어요: ${getErrorMessage(error)}`);
       })
@@ -333,7 +329,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
 
           return [room, ...currentRooms];
         });
-        setRoomSourceLabel('동기화됨');
         setRoomListError(null);
         clearPendingInviteCode();
         clearInviteCodeFromLocation();
@@ -419,7 +414,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
       const room = await groupToRoom(group, { memberId, token }, values.icon);
 
       setRooms((currentRooms) => [room, ...currentRooms]);
-      setRoomSourceLabel('동기화됨');
       setRoomListError(null);
       setOpenMenuId(null);
       setDialog(null);
@@ -511,7 +505,6 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
 
         return [room, ...currentRooms];
       });
-      setRoomSourceLabel('동기화됨');
       showToast(`${room.name} 방에 참여했어요`);
     } catch (error) {
       showToast(`초대코드로 참여하지 못했어요: ${getErrorMessage(error)}`);
@@ -551,24 +544,24 @@ export function RoomListScreen({ isLoggingOut = false, memberId, memberName, onL
         <StarField />
 
         <nav className="room-list-nav" aria-label="방 목록 탐색">
-          <span aria-hidden="true" />
-          <p className="room-list-nav-title">방 목록</p>
           <button
-            className="room-logout-button"
+            className="room-back-button"
             type="button"
             disabled={!memberId || isLoggingOut}
             onClick={onLogout}
-            aria-label="로그아웃"
+            aria-label="로그아웃하고 시작 화면으로 돌아가기"
           >
-            {isLoggingOut ? '처리 중' : '로그아웃'}
+            {isLoggingOut ? '…' : '←'}
           </button>
+          <p className="room-list-nav-title">방 목록</p>
+          <span aria-hidden="true" />
         </nav>
 
         <header className="room-list-header">
           <h1 id="room-list-title">내 그룹</h1>
           <p>
-            {memberName ? `${memberName}님 · ` : ''}총 {rooms.length}개의 방{' '}
-            <span aria-hidden="true">·</span> {isLoadingRooms ? '불러오는 중' : roomSourceLabel}
+            {memberName ? `${memberName}님 · ` : ''}총 {rooms.length}개의 방
+            {isLoadingRooms ? ' · 불러오는 중' : ''}
           </p>
         </header>
 
