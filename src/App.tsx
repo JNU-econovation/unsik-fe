@@ -5,7 +5,7 @@ import { MainScreen } from '@/components/main/main-screen';
 import { RoomListScreen } from '@/components/rooms/room-list-screen';
 import { VoteFlowScreen } from '@/components/votes/vote-flow-screen';
 import { formatApiErrorMessage, formatUnknownErrorMessage } from '@/services/api-error';
-import { AUTH_EXPIRED_EVENT } from '@/services/backend';
+import { AUTH_EXPIRED_EVENT, logout } from '@/services/backend';
 import type { AuthSession } from '@/services/auth';
 import { clearAuthSession, createKakaoLoginUrl, KAKAO_CALLBACK_PATH, loadAuthSession } from '@/services/auth';
 
@@ -119,11 +119,11 @@ export function App() {
     setRoute(nextRoute);
   }, []);
 
-  const handleKakaoLogin = useCallback(() => {
+  const handleKakaoLogin = useCallback(async () => {
     setLoginError(null);
 
     try {
-      window.location.assign(createKakaoLoginUrl());
+      window.location.assign(await createKakaoLoginUrl());
     } catch (error) {
       setLoginError(getErrorMessage(error));
     }
@@ -143,11 +143,17 @@ export function App() {
     setIsLoggingOut(true);
     setLoginError(null);
 
-    clearAuthSession();
-    setAuthSession(null);
-    setIsLoggingOut(false);
-    window.history.replaceState(null, '', '/main');
-    setRoute({ type: 'main' });
+    try {
+      await logout({ memberId: authSession.member.id, token: authSession.token });
+    } catch {
+      // Local sign-out must still succeed if the token is already invalid or the network is unavailable.
+    } finally {
+      clearAuthSession();
+      setAuthSession(null);
+      setIsLoggingOut(false);
+      window.history.replaceState(null, '', '/main');
+      setRoute({ type: 'main' });
+    }
   }, [authSession, isLoggingOut]);
 
   const handleToggleThemeMode = useCallback(() => {

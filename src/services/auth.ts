@@ -60,15 +60,43 @@ export async function authenticateWithKakaoCode(code: string): Promise<AuthSessi
   return parseAuthSession(responseBody);
 }
 
-export function createKakaoLoginUrl(): string {
+export async function createKakaoLoginUrl(): Promise<string> {
+  const state = createOAuthState();
+  saveKakaoOAuthState(state);
+
+  try {
+    const response = await fetch(createApiUrl('/api/auth/kakao/login-url'), {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (response.ok) {
+      const body: unknown = await response.json();
+      const serverUrl = readLoginUrl(body);
+
+      if (serverUrl) {
+        const url = new URL(serverUrl);
+        const configuredRedirectUri = import.meta.env.VITE_KAKAO_REDIRECT_URI?.trim();
+
+        url.searchParams.set('state', state);
+
+        if (configuredRedirectUri) {
+          url.searchParams.set('redirect_uri', configuredRedirectUri);
+        }
+
+        return url.toString();
+      }
+    }
+  } catch {
+    // A configured public Kakao key can still start OAuth while the helper endpoint is unavailable.
+  }
+
   const clientId = import.meta.env.VITE_KAKAO_REST_API_KEY?.trim();
 
   if (!clientId) {
-    throw new Error(formatApiErrorMessage('CLIENT_CONFIG', '카카오 로그인 설정이 필요해요.'));
+    throw new Error(
+      formatApiErrorMessage('CLIENT_CONFIG', '카카오 로그인 서버에 연결할 수 없고 대체 로그인 설정도 없어요.'),
+    );
   }
-
-  const state = createOAuthState();
-  saveKakaoOAuthState(state);
 
   const url = new URL(KAKAO_AUTHORIZATION_URL);
   url.searchParams.set('client_id', clientId);
@@ -77,6 +105,14 @@ export function createKakaoLoginUrl(): string {
   url.searchParams.set('state', state);
 
   return url.toString();
+}
+
+function readLoginUrl(value: unknown): string | null {
+  if (!isRecord(value) || typeof value.url !== 'string' || !value.url.trim()) {
+    return null;
+  }
+
+  return value.url;
 }
 
 export function verifyKakaoOAuthState(returnedState: string | null): void {

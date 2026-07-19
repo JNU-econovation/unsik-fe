@@ -212,6 +212,13 @@ export async function requestBackend(path: `/${string}`, options: RequestOptions
   }
 }
 
+export async function logout(context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>) {
+  await requestBackend(`/api/auth/logout?memberId=${context.memberId}`, {
+    method: 'POST',
+    token: context.token,
+  });
+}
+
 export async function listGroups(context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>) {
   const value = await requestBackend(`/api/groups?memberId=${context.memberId}`, {
     token: context.token,
@@ -254,6 +261,17 @@ export async function deleteGroup(
     method: 'DELETE',
     token: context.token,
   });
+}
+
+export async function getGroup(
+  context: Required<Pick<BackendContext, 'memberId'>> & Pick<BackendContext, 'token'>,
+  groupId: number,
+) {
+  const value = await requestBackend(`/api/groups/${groupId}?memberId=${context.memberId}`, {
+    token: context.token,
+  });
+
+  return parseGroupResponse(value);
 }
 
 export async function renameGroup(
