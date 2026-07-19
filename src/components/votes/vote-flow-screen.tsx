@@ -19,6 +19,7 @@ import type {
 import {
   createVote,
   deleteVote,
+  getGroup,
   getVote,
   listGroupMembers,
   listGroupVotes,
@@ -30,9 +31,20 @@ import {
   submitBallot,
   submitPreference,
 } from '@/services/backend';
-import oracleFateImage from '@/assets/images/mascots/oracle-fate-ai.png';
-import oracleMoonImage from '@/assets/images/mascots/oracle-moon-ai.png';
-import oracleStarImage from '@/assets/images/mascots/oracle-star-ai.png';
+import oracleFateImage from '@/assets/images/figma/oracle-2.png';
+import oracleMoonImage from '@/assets/images/figma/oracle-3.png';
+import oracleStarImage from '@/assets/images/figma/oracle-1.png';
+import galbitangCardImage from '@/assets/images/figma/card-pick-scene.png';
+import gukbapCardImage from '@/assets/images/figma/card-pick-card.png';
+import galbitangRevealImage from '@/assets/images/figma/card-reveal.png';
+import preferenceAsianImage from '@/assets/images/figma/preference-asian.png';
+import preferenceChineseImage from '@/assets/images/figma/preference-chinese.png';
+import preferenceFastfoodImage from '@/assets/images/figma/preference-fastfood.png';
+import preferenceJapaneseImage from '@/assets/images/figma/preference-japanese.png';
+import preferenceKoreanImage from '@/assets/images/figma/preference-korean.png';
+import preferenceMeatImage from '@/assets/images/figma/preference-meat.png';
+import preferenceStewSoupImage from '@/assets/images/figma/preference-stew-soup.png';
+import preferenceWesternImage from '@/assets/images/figma/preference-western.png';
 
 import './vote-flow-screen.css';
 
@@ -158,17 +170,18 @@ const CUISINE_OPTIONS: Array<{
   cuisine: Cuisine;
   label: string;
   icon: string;
+  imageSrc: string;
   description: string;
   color: string;
 }> = [
-  { cuisine: 'FASTFOOD', label: '패스트푸드', icon: '🍔', description: '햄버거 · 피자 · 토스트', color: '#f5834a' },
-  { cuisine: 'KOREAN', label: '한식', icon: '🍲', description: '냉면 · 국밥 · 덮밥 · 찌개', color: '#9e85f5' },
-  { cuisine: 'STEW_SOUP', label: '찜·탕', icon: '🥘', description: '김치찜 · 찜닭 · 감자탕', color: '#2ed6a3' },
-  { cuisine: 'JAPANESE', label: '돈까스·회', icon: '🍱', description: '돈까스 · 초밥 · 라멘 · 회', color: '#f5c829' },
-  { cuisine: 'MEAT', label: '고기', icon: '🥩', description: '삼겹살 · 제육 · 닭갈비', color: '#f07840' },
-  { cuisine: 'ASIAN', label: '아시안', icon: '🍜', description: '쌀국수 · 팟타이', color: '#ffb347' },
-  { cuisine: 'CHINESE', label: '중식', icon: '🥡', description: '짜장 · 짬뽕 · 마라탕', color: '#d783ff' },
-  { cuisine: 'WESTERN', label: '양식', icon: '🍝', description: '파스타 · 스테이크 · 샐러드', color: '#4dd0e1' },
+  { cuisine: 'FASTFOOD', label: '패스트푸드', icon: '🍔', imageSrc: preferenceFastfoodImage, description: '햄버거 · 피자 · 토스트', color: '#f5834a' },
+  { cuisine: 'KOREAN', label: '한식', icon: '🍲', imageSrc: preferenceKoreanImage, description: '냉면 · 국밥 · 덮밥 · 찌개', color: '#9e85f5' },
+  { cuisine: 'STEW_SOUP', label: '찜·탕', icon: '🫕', imageSrc: preferenceStewSoupImage, description: '김치찜 · 찜닭 · 감자탕', color: '#2ed6a3' },
+  { cuisine: 'JAPANESE', label: '돈까스·회', icon: '🍱', imageSrc: preferenceJapaneseImage, description: '돈까스 · 초밥 · 라멘 · 회', color: '#f9c726' },
+  { cuisine: 'MEAT', label: '고기', icon: '🥩', imageSrc: preferenceMeatImage, description: '삼겹살 · 제육 · 닭갈비', color: '#f07840' },
+  { cuisine: 'ASIAN', label: '아시안', icon: '🍜', imageSrc: preferenceAsianImage, description: '쌀국수 · 팟타이', color: '#ffb347' },
+  { cuisine: 'CHINESE', label: '중식', icon: '🥟', imageSrc: preferenceChineseImage, description: '짜장 · 짬뽕 · 마라탕', color: '#d783ff' },
+  { cuisine: 'WESTERN', label: '양식', icon: '🍝', imageSrc: preferenceWesternImage, description: '파스타 · 스테이크 · 포케', color: '#4dd0e1' },
 ];
 
 const MENU_ICON_RULES: ReadonlyArray<{ keywords: readonly string[]; icon: string }> = [
@@ -290,12 +303,14 @@ export function VoteFlowScreen({
   const context = useMemo<BackendContext>(() => ({ memberId, token }), [memberId, token]);
 
   const [step, setStep] = useState<VoteStep>('list');
+  const [historyReturnStep, setHistoryReturnStep] = useState<'setup' | 'status'>('setup');
   const [voteTitle, setVoteTitle] = useState('오늘 점심');
   const [selectedPlaceKey, setSelectedPlaceKey] = useState('back');
   const [placeOptions, setPlaceOptions] = useState<PlaceOption[]>(PLACE_OPTIONS);
   const [historyFilter, setHistoryFilter] = useState<MealHistoryFilter>('all');
   const [voteSummaries, setVoteSummaries] = useState<VoteSummary[]>([]);
   const [members, setMembers] = useState<VoteMember[]>([]);
+  const [groupInviteCode, setGroupInviteCode] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<number>>(() => new Set());
   const [activeVote, setActiveVote] = useState<ActiveVote | null>(null);
   const [selectedOracleId, setSelectedOracleId] = useState('moon');
@@ -449,6 +464,31 @@ export function VoteFlowScreen({
           setMembers([]);
           setSelectedMemberIds(new Set());
           setApiMessage(`그룹원을 불러오지 못했어요: ${getErrorMessage(error)}`);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [hasBackendGroup, memberId, numericGroupId, token]);
+
+  useEffect(() => {
+    if (!memberId || !hasBackendGroup) {
+      setGroupInviteCode(null);
+      return undefined;
+    }
+
+    let isCurrent = true;
+
+    getGroup({ memberId, token }, numericGroupId)
+      .then((group) => {
+        if (isCurrent) {
+          setGroupInviteCode(group.inviteCode || null);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setGroupInviteCode(null);
         }
       });
 
@@ -1199,6 +1239,37 @@ export function VoteFlowScreen({
     }
   };
 
+  const handleInvite = async () => {
+    if (!groupInviteCode) {
+      showToast('초대 링크를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+
+    const inviteUrl = new URL('/grouplist', window.location.origin);
+    inviteUrl.searchParams.set('code', groupInviteCode);
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: '운식 그룹 초대',
+          text: '운식에서 같이 오늘의 메뉴를 골라요.',
+          url: inviteUrl.toString(),
+        });
+        showToast('초대 링크를 공유했어요.');
+        return;
+      }
+
+      await navigator.clipboard.writeText(inviteUrl.toString());
+      showToast('초대 링크를 복사했어요. 카카오톡에 붙여넣어 주세요.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+
+      showToast(`초대 링크: ${inviteUrl.toString()}`);
+    }
+  };
+
   const handleCandidateVote = async (choice: BallotChoice) => {
     if (!currentCandidate) {
       setApiMessage('추천 후보가 없어 호불호 투표를 진행할 수 없어요.');
@@ -1217,7 +1288,10 @@ export function VoteFlowScreen({
       return;
     }
 
-    await handleFinalize(nextChoices);
+    const revealMenu = candidates.find((candidate) => nextChoices[candidate.menuId] === 'LIKE') ?? currentCandidate;
+
+    setFinalMenu(revealMenu);
+    setStep('reveal');
   };
 
   const handleFinalize = async (choices: Record<number, BallotChoice> = ballotChoices) => {
@@ -1373,14 +1447,16 @@ export function VoteFlowScreen({
           members={members}
           onBack={() => setStep('list')}
           onCreateVote={() => void handleCreateVote()}
-          onInvite={() => showToast('초대 링크 공유는 그룹 초대코드로 대체해요.')}
+          onInvite={() => void handleInvite()}
+          onOpenHistory={() => {
+            setHistoryReturnStep('setup');
+            setStep('history');
+          }}
           onPlaceChange={setSelectedPlaceKey}
-          onTitleChange={setVoteTitle}
           onToggleMember={toggleMember}
           placeOptions={placeOptions}
           selectedMemberIds={selectedMemberIds}
           selectedPlaceKey={selectedPlaceKey}
-          title={voteTitle}
         />
       );
     }
@@ -1397,7 +1473,10 @@ export function VoteFlowScreen({
           members={selectedMembers}
           onBack={() => setStep(hasSubmittedActiveBallot || hasSubmittedActivePreference ? 'list' : 'setup')}
           onCancel={() => void handleCancelVote()}
-          onOpenHistory={() => setStep('history')}
+          onOpenHistory={() => {
+            setHistoryReturnStep('status');
+            setStep('history');
+          }}
           onNext={() => {
             if (hasSubmittedActiveBallot) {
               setStep('list');
@@ -1421,7 +1500,7 @@ export function VoteFlowScreen({
         <MealHistoryView
           filter={historyFilter}
           items={mealHistoryItems}
-          onBack={() => setStep('status')}
+          onBack={() => setStep(historyReturnStep)}
           onFilterChange={setHistoryFilter}
         />
       );
@@ -1512,6 +1591,7 @@ export function VoteFlowScreen({
           onRetry={() => {
             setActiveCardIndex(0);
             setBallotChoices({});
+            setFinalMenu(null);
             setStep('cards');
           }}
         />
@@ -1695,7 +1775,6 @@ function VoteListView({
 }
 
 function VoteSetupView({
-  title,
   selectedPlaceKey,
   placeOptions,
   selectedMemberIds,
@@ -1703,13 +1782,12 @@ function VoteSetupView({
   apiMessage,
   isLoading,
   onBack,
-  onTitleChange,
   onPlaceChange,
   onToggleMember,
   onInvite,
+  onOpenHistory,
   onCreateVote,
 }: {
-  title: string;
   selectedPlaceKey: string;
   placeOptions: PlaceOption[];
   selectedMemberIds: Set<number>;
@@ -1717,22 +1795,15 @@ function VoteSetupView({
   apiMessage: string | null;
   isLoading: boolean;
   onBack: () => void;
-  onTitleChange: (value: string) => void;
   onPlaceChange: (value: string) => void;
   onToggleMember: (memberId: number) => void;
   onInvite: () => void;
+  onOpenHistory: () => void;
   onCreateVote: () => void;
 }) {
   return (
     <>
       <VoteNav title="그룹 컨디션" onBack={onBack} />
-      <div className="vote-field-block">
-        <label className="vote-text-field">
-          <span>투표 이름</span>
-          <input value={title} maxLength={24} onChange={(event) => onTitleChange(event.target.value)} />
-        </label>
-      </div>
-
       <section className="vote-section">
         <div className="vote-label-row">
           <strong>어디서 먹을지 골라주세요</strong>
@@ -1751,6 +1822,14 @@ function VoteSetupView({
           ))}
         </div>
       </section>
+
+      <button className="vote-history-button vote-history-button-setup" type="button" onClick={onOpenHistory}>
+        <span>
+          <strong>과거 내역 보기</strong>
+          <small>이전에 선정된 메뉴를 확인해요</small>
+        </span>
+        <em aria-hidden="true">→</em>
+      </button>
 
       <section className="vote-section vote-member-section">
         <div className="vote-member-header">
@@ -1787,6 +1866,14 @@ function VoteSetupView({
             </div>
           )}
         </div>
+
+        <button className="vote-kakao-invite" type="button" onClick={onInvite}>
+          <span>
+            <strong>카카오톡으로 초대하기</strong>
+            <small>링크를 공유해 그룹에 초대하세요</small>
+          </span>
+          <em aria-hidden="true">→</em>
+        </button>
       </section>
 
       <ApiMessage message={apiMessage} />
@@ -1864,7 +1951,7 @@ function VoteStatusView({
           📣 투표 알림 보내기
         </button>
         <button className="vote-outline-red" type="button" disabled={isLoading} onClick={onCancel}>
-          {isLoading ? '삭제 중' : '✕ 투표 삭제'}
+          {isLoading ? '취소 중' : '투표 취소'}
         </button>
       </div>
 
@@ -2114,7 +2201,7 @@ function PreferenceView({
   return (
     <>
       <VoteNav title="오늘의 취향" onBack={onBack} />
-      <header className="vote-centered-header">
+      <header className="vote-centered-header vote-preference-header">
         <strong>🚫 오늘 당기지 않는 게 있나요?</strong>
         <p>없으면 그냥 스킵해도 괜찮아요</p>
       </header>
@@ -2182,6 +2269,8 @@ function PreferenceView({
         </div>
       ) : null}
 
+      <p className="vote-preference-label">카테고리로 빠르게 제외하기</p>
+
         <div className="vote-cuisine-grid">
           {CUISINE_OPTIONS.map((option) => {
             const isSelected = dislikedCuisines.has(option.cuisine);
@@ -2204,7 +2293,9 @@ function PreferenceView({
               onClick={() => onToggleCuisine(option.cuisine)}
               aria-pressed={isSelected}
             >
-              <span>{option.icon}</span>
+              <span aria-hidden="true">
+                <img alt="" src={option.imageSrc} />
+              </span>
               <strong>{option.label}</strong>
               <small>{option.description}</small>
               <b aria-hidden="true">{isSelected ? '✓' : ''}</b>
@@ -2261,44 +2352,80 @@ function CardVoteView({
   onBack: () => void;
   onVote: (choice: BallotChoice) => void;
 }) {
+  const candidateArtwork = getMenuArtwork(candidate.name);
+  const hasFigmaCardStage = normalizeMenuSearchText(candidate.name).includes('갈비탕');
+
   return (
     <>
       <VoteNav title="카드 뽑기" onBack={onBack} right={`${activeCardIndex + 1} / ${candidates.length}`} />
-      <div className="vote-card-progress" style={{ gridTemplateColumns: `repeat(${candidates.length}, 1fr)` }}>
-        {candidates.map((item, index) => (
-          <span className={index <= activeCardIndex ? 'vote-card-progress-active' : ''} key={item.menuId} />
-        ))}
-      </div>
+      {hasFigmaCardStage ? (
+        <>
+          <section className="vote-pick-exact-stage" aria-label={`${candidate.name} 카드 선택`}>
+            <img className="vote-pick-exact-scene" src={galbitangCardImage} alt={`${candidate.name} 운세 카드`} />
+            <img className="vote-pick-exact-next-card" src={gukbapCardImage} alt="다음 후보 카드 미리보기" />
+            <button
+              className="vote-pick-exact-choice vote-pick-exact-dislike"
+              type="button"
+              disabled={isLoading}
+              onClick={() => onVote('DISLIKE')}
+              aria-label={`${candidate.name} 별로`}
+            />
+            <button
+              className="vote-pick-exact-choice vote-pick-exact-like"
+              type="button"
+              disabled={isLoading}
+              onClick={() => onVote('LIKE')}
+              aria-label={`${candidate.name} 좋아`}
+            />
+          </section>
+          <div className="vote-api-note vote-card-exact-hint">← 왼쪽으로 밀면 별로야 · 오른쪽으로 밀면 좋아! →</div>
+          <div className="vote-card-exact-cta">{candidates.length}장을 모두 골라야 결과를 볼 수 있어요</div>
+        </>
+      ) : (
+        <>
+          <div className="vote-card-progress" style={{ gridTemplateColumns: `repeat(${candidates.length}, 1fr)` }}>
+            {candidates.map((item, index) => (
+              <span className={index <= activeCardIndex ? 'vote-card-progress-active' : ''} key={item.menuId} />
+            ))}
+          </div>
 
-      <section className="vote-pick-layout">
-        <article className="vote-menu-card">
-          <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
-          <div className="vote-menu-icon">{candidate.icon}</div>
-          <strong>{candidate.name}</strong>
-          <p>{candidate.description}</p>
-          <em># {getCuisineLabel(candidate.cuisine)}</em>
-        </article>
-        <div className="vote-card-stack-preview">
-          <span>✦</span>
-          <small>남은 카드 {Math.max(candidates.length - activeCardIndex - 1, 0)}장</small>
-        </div>
-      </section>
+          <section className="vote-pick-layout">
+            <article className="vote-menu-card">
+              <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
+              <div className={candidateArtwork ? 'vote-menu-icon vote-menu-artwork' : 'vote-menu-icon'}>
+                {candidateArtwork ? (
+                  <img src={candidateArtwork.src} alt="" style={{ objectPosition: candidateArtwork.position }} />
+                ) : (
+                  candidate.icon
+                )}
+              </div>
+              <strong>{candidate.name}</strong>
+              <p>{candidate.description}</p>
+              <em># {getCuisineLabel(candidate.cuisine)}</em>
+            </article>
+            <div className="vote-card-stack-preview">
+              <span>✦</span>
+              <small>남은 카드 {Math.max(candidates.length - activeCardIndex - 1, 0)}장</small>
+            </div>
+          </section>
 
-      <header className="vote-centered-header vote-card-question">
-        <strong>오늘 이 음식은 어때요?</strong>
-        <p>오늘 {candidate.name} 땡기면 좋아를 눌러주세요</p>
-      </header>
+          <header className="vote-centered-header vote-card-question">
+            <strong>오늘 이 음식은 어때요?</strong>
+            <p>오늘 {candidate.name} 땡기면 좋아를 눌러주세요</p>
+          </header>
 
-      <div className="vote-like-row">
-        <button className="vote-dislike-button" type="button" disabled={isLoading} onClick={() => onVote('DISLIKE')}>
-          별로
-        </button>
-        <button className="vote-like-button" type="button" disabled={isLoading} onClick={() => onVote('LIKE')}>
-          좋아
-        </button>
-      </div>
+          <div className="vote-like-row">
+            <button className="vote-dislike-button" type="button" disabled={isLoading} onClick={() => onVote('DISLIKE')}>
+              별로
+            </button>
+            <button className="vote-like-button" type="button" disabled={isLoading} onClick={() => onVote('LIKE')}>
+              좋아
+            </button>
+          </div>
 
-      <div className="vote-api-note">← 왼쪽은 별로 · 오른쪽은 좋아</div>
+          <div className="vote-api-note">← 왼쪽은 별로 · 오른쪽은 좋아</div>
+        </>
+      )}
       <ApiMessage message={apiMessage} />
     </>
   );
@@ -2321,23 +2448,45 @@ function RevealView({
   onFinalize: () => void;
   onRetry: () => void;
 }) {
+  const finalMenuArtwork = getMenuArtwork(finalMenu.name);
+  const hasFigmaRevealArtwork = normalizeMenuSearchText(finalMenu.name).includes('갈비탕');
+
   return (
     <>
       <VoteNav title="운명의 한 수" onBack={onBack} />
-      <header className="vote-centered-header">
+      <header className="vote-centered-header vote-reveal-header">
         <strong>✦ AI가 오늘의 메뉴를 골랐어요! ✦</strong>
         <p>마음에 들면 결정 · 아니면 다시 뽑을 수 있어요</p>
       </header>
 
-      <button className="vote-reveal-card" type="button" onClick={onFinalize}>
-        <span>✦ 오늘의 메뉴 ✦</span>
-        <em>{finalMenu.icon}</em>
-        <strong>{finalMenu.name}</strong>
-        <p>{finalMenu.description}</p>
-        <small># {getCuisineLabel(finalMenu.cuisine)}</small>
+      <button
+        className={hasFigmaRevealArtwork ? 'vote-reveal-card vote-reveal-card-exact' : 'vote-reveal-card'}
+        type="button"
+        onClick={onFinalize}
+        aria-label={`${finalMenu.name}(으)로 결정하기`}
+      >
+        {hasFigmaRevealArtwork ? (
+          <span className="vote-reveal-tarot-crop">
+            <img src={galbitangRevealImage} alt="갈비탕 타로 카드" />
+          </span>
+        ) : (
+          <>
+            <span>✦ 오늘의 메뉴 ✦</span>
+            {finalMenuArtwork ? (
+              <span className="vote-reveal-artwork">
+                <img src={finalMenuArtwork.src} alt="" style={{ objectPosition: finalMenuArtwork.position }} />
+              </span>
+            ) : (
+              <em>{finalMenu.icon}</em>
+            )}
+            <strong>{finalMenu.name}</strong>
+            <p>{finalMenu.description}</p>
+            <small># {getCuisineLabel(finalMenu.cuisine)}</small>
+          </>
+        )}
       </button>
 
-      <div className="vote-result-members">
+      <div className="vote-result-members vote-reveal-members">
         <div>
           <strong>참여자</strong>
           <span>{members.length}명</span>
@@ -2386,16 +2535,36 @@ function FinalResultView({
   onOpenScore: () => void;
   onOpenRestaurant: (restaurant: RestaurantDocument) => void;
 }) {
+  const fateCharacterImage = getCuisineCharacterImage(finalMenu.cuisine);
+
   return (
     <>
       <VoteNav title="✦ 오늘의 운명 ✦" onBack={onBack} />
-      <button className="vote-final-hero" type="button" onClick={onOpenScore}>
-        <span>✦·✦·✦</span>
-        <em>{finalMenu.icon}</em>
-        <small>오늘의 메뉴</small>
-        <strong>{finalMenu.name}</strong>
-        <b>{getCuisineLabel(finalMenu.cuisine)}</b>
-        <p>메뉴 정보를 보려면 탭하세요 →</p>
+      <button
+        className="vote-final-hero vote-final-hero-dynamic"
+        type="button"
+        onClick={onOpenScore}
+      >
+        <span className="vote-final-kicker">✦ 오늘의 운명 ✦</span>
+        <div className="vote-final-scene">
+          <span className="vote-final-spark vote-final-spark-one" aria-hidden="true">✦</span>
+          <span className="vote-final-spark vote-final-spark-two" aria-hidden="true">✧</span>
+          <span className="vote-final-spark vote-final-spark-three" aria-hidden="true">✦</span>
+          <div className="vote-final-magic-trail" aria-hidden="true" />
+          <div className="vote-final-tarot-card">
+            <small>UNSIK · TODAY'S FATE</small>
+            <div className="vote-final-menu-icon" aria-hidden="true">{finalMenu.icon}</div>
+            <strong>{finalMenu.name}</strong>
+            <span>{getCuisineLabel(finalMenu.cuisine)}</span>
+          </div>
+          <img
+            className="vote-final-character"
+            src={fateCharacterImage}
+            alt={`${finalMenu.name} 운명 카드를 보여주는 ${getCuisineLabel(finalMenu.cuisine)} 캐릭터`}
+          />
+        </div>
+        <b>✦ 운명을 맞았다! ✦</b>
+        <p>메뉴 정보를 보려면 탭하세요</p>
       </button>
 
       <p className="vote-section-title">추천 식당</p>
@@ -2505,10 +2674,14 @@ function ScoreDetailView({
 
       <section className="vote-score-card">
         <div className="vote-score-top">
-          <div className="vote-score-donut">{finalMenu.icon}</div>
+          <div className="vote-score-donut" aria-label="추천 완료">
+            ✓
+          </div>
           <span>
-            <strong>{getCuisineLabel(finalMenu.cuisine)}</strong>
-            <small>추천 메뉴</small>
+            <strong>그룹 추천 완료</strong>
+            <small>
+              {members.length}명 참여 · {getCuisineLabel(finalMenu.cuisine)} 메뉴
+            </small>
           </span>
         </div>
         {members.map((member) => (
@@ -2517,9 +2690,34 @@ function ScoreDetailView({
             <div>
               <i style={{ width: '100%', background: member.color }} />
             </div>
-            <b style={{ color: member.color }}>{member.role === 'OWNER' ? '그룹장' : '멤버'}</b>
+            <b style={{ color: member.color }}>참여</b>
           </div>
         ))}
+      </section>
+
+      <p className="vote-score-section-label">왜 이 메뉴를</p>
+      <section className="vote-score-why-card">
+        <div className="vote-score-reason">
+          <span aria-hidden="true">✓</span>
+          <div>
+            <strong>그룹 선택 결과 반영</strong>
+            <p>{members.length}명의 선택을 종합해 최종 메뉴로 결정했어요.</p>
+          </div>
+        </div>
+        <div className="vote-score-reason">
+          <span aria-hidden="true">🍽</span>
+          <div>
+            <strong>{getCuisineLabel(finalMenu.cuisine)} 메뉴</strong>
+            <p>{finalMenu.name}은(는) 추천 후보 중 그룹이 최종 선택한 메뉴예요.</p>
+          </div>
+        </div>
+        <div className="vote-score-reason">
+          <span aria-hidden="true">📍</span>
+          <div>
+            <strong>주변 식당으로 바로 연결</strong>
+            <p>결과 화면에서 선택한 학교 주변의 실제 식당을 확인할 수 있어요.</p>
+          </div>
+        </div>
       </section>
 
     </>
@@ -2761,6 +2959,10 @@ function getCuisineIcon(cuisine: Cuisine) {
   return CUISINE_OPTIONS.find((option) => option.cuisine === cuisine)?.icon ?? '🍽️';
 }
 
+function getCuisineCharacterImage(cuisine: Cuisine) {
+  return CUISINE_OPTIONS.find((option) => option.cuisine === cuisine)?.imageSrc ?? preferenceFastfoodImage;
+}
+
 function normalizeMenuSearchText(value: string) {
   return value.normalize('NFKC').toLocaleLowerCase('ko-KR').replaceAll(/\s+/g, '');
 }
@@ -2772,6 +2974,20 @@ function getMenuIcon(name: string, cuisine: Cuisine) {
   );
 
   return matchedRule?.icon ?? getCuisineIcon(cuisine);
+}
+
+function getMenuArtwork(name: string): { src: string; position: string } | null {
+  const normalizedName = normalizeMenuSearchText(name);
+
+  if (normalizedName.includes('갈비탕')) {
+    return { src: galbitangCardImage, position: '50% 57%' };
+  }
+
+  if (normalizedName.includes('국밥')) {
+    return { src: gukbapCardImage, position: '50% 58%' };
+  }
+
+  return null;
 }
 
 function getCuisineLabel(cuisine: Cuisine) {
