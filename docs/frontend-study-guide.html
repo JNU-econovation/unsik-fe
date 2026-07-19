@@ -650,16 +650,16 @@
             <div>
               <h3>메인 화면의 구성</h3>
               <ul>
-                <li>상단에는 <code>FOOD TAROT</code> 라벨이 있습니다.</li>
-                <li>제목은 <code>오늘 뭐 먹지?</code>, <code>운명에게 물어봐.</code> 두 줄입니다.</li>
-                <li>부제목과 카카오 시작하기 버튼이 있습니다.</li>
-                <li>캐릭터 이미지는 <code>assets/images/mascots/landing-mascots.png</code>에서 가져옵니다.</li>
-                <li>별, 반짝임, 달 배경은 이미지가 아니라 대부분 CSS와 JSX 요소로 만듭니다.</li>
+                <li>상단에는 <code>✦ 운식 ✦</code> 브랜드 라벨이 있습니다.</li>
+                <li>제목은 <code>오늘 뭐 먹을지 또 고민하고 계신가요?</code>입니다.</li>
+                <li>AI 추천 소개와 카카오 시작하기 버튼이 있습니다.</li>
+                <li>랜딩 타로 이미지는 <code>assets/images/figma/landing-tarot.png</code>의 Figma 원본을 사용합니다.</li>
+                <li>별 배경과 반응형 배치는 CSS와 JSX 요소로 구성합니다.</li>
               </ul>
 
               <div class="callout">
                 <strong>중요한 상태:</strong>
-                카카오 로그인 플로우는 백엔드와 연결되어 있습니다. 프론트는 Kakao 인증 URL을 만들고,
+                카카오 로그인 플로우는 백엔드와 연결되어 있습니다. 프론트는 백엔드의 <code>GET /api/auth/kakao/login-url</code>에서 Kakao 인증 URL을 받고,
                 콜백에서 받은 <code>code</code>와 로그인 URL에 사용한 <code>redirectUri</code>를
                 <code>VITE_API_BASE_URL</code>의 <code>POST /api/auth/kakao</code>로 보냅니다.
                 응답으로 받은 토큰과 회원 정보는 <code>localStorage</code>의
@@ -671,7 +671,7 @@
                 <li><code>/grouplist</code>에서 로그인한 사용자의 참여 그룹을 백엔드에서 조회합니다.</li>
                 <li>방 만들기, 초대코드 참여, 초대 링크 복사, 방 삭제가 API 기준으로 동작합니다.</li>
                 <li><code>/grouplist?code=...</code> 초대 링크는 로그인 전이면 잠시 저장했다가 로그인 후 자동 참여합니다.</li>
-                <li>상단 로그아웃 버튼은 <code>unsik:auth_session</code>을 지우고 메인 화면으로 돌아갑니다.</li>
+                <li>상단 로그아웃 버튼은 <code>POST /api/auth/logout</code>을 호출하고 <code>unsik:auth_session</code>을 지운 뒤 메인 화면으로 돌아갑니다.</li>
                 <li>방 우상단 메뉴에서 링크 복사와 방 삭제를 실행할 수 있습니다.</li>
                 <li>메뉴는 메뉴 버튼, 바깥 클릭, <code>Esc</code> 키로 닫힙니다.</li>
                 <li>로그인 전, 로딩 중, 빈 목록, API 실패 상태를 화면에서 구분합니다.</li>
@@ -681,7 +681,7 @@
               <ul>
                 <li>방에 들어가면 <code>/groups/:groupId/votes</code>에서 투표 목록과 새 투표 만들기를 보여줍니다.</li>
                 <li>새 투표는 위치, 참여자, 선호 cuisine, 알레르기/제한 정보를 거쳐 추천 후보를 받습니다.</li>
-                <li>후보 카드에서 좋아/별로를 고른 뒤 최종 확정 단계에서 투표 결과를 백엔드에 제출합니다.</li>
+                <li>후보 카드에서 좋아/별로를 모두 고르면 공개 화면이 열리고, 최종 확정 버튼에서 투표 결과를 백엔드에 제출합니다.</li>
                 <li>최종 메뉴가 정해지면 <code>GET /api/restaurants</code>로 주변 식당을 조회하고 카카오맵 링크를 엽니다.</li>
                 <li>투표 목록은 <code>GET /api/groups/{groupId}/votes</code>로 현재 그룹의 투표 요약을 불러옵니다.</li>
               </ul>
@@ -695,9 +695,9 @@
             </div>
 
             <div class="phone" aria-label="현재 랜딩 화면 요약 미리보기">
-              <div class="phone-kicker">FOOD TAROT</div>
-              <div class="phone-title">오늘 뭐 먹지?<br />운명에게 물어봐.</div>
-              <div class="phone-copy">세 점쟁이 셰프가 당신의 한 끼를 점쳐 드려요.</div>
+              <div class="phone-kicker">✦ 운식 ✦</div>
+              <div class="phone-title">오늘 뭐 먹을지 또<br />고민하고 계신가요?</div>
+              <div class="phone-copy">그룹을 만들고 운명의 메뉴를 받아보세요.</div>
               <div class="phone-orb">
                 <div class="phone-mascots" aria-hidden="true">✦</div>
               </div>
@@ -837,7 +837,7 @@
                 <strong>화면별 CSS와 에셋</strong>
                 <p>
                   각 화면 폴더의 CSS가 배치와 상태 스타일을 담당하고,
-                  캐릭터 이미지는 <code>assets/images/mascots</code>에서 import합니다.
+                  Figma 원본 이미지는 <code>assets/images/figma</code>에서 import합니다.
                 </p>
               </div>
             </div>
@@ -853,7 +853,7 @@
       -> src/components/votes/vote-flow-screen.tsx
       -> src/services/auth.ts
       -> src/services/backend.ts
-      -> assets/images/mascots/landing-mascots.png</code></pre>
+      -> assets/images/figma/landing-tarot.png</code></pre>
         </section>
 
         <section class="section" id="files">
@@ -1094,7 +1094,7 @@
               <tr>
                 <td><code>assets/</code></td>
                 <td>React 코드에서 import해서 번들에 포함할 이미지</td>
-                <td><code>import mascotImage from '@/assets/images/mascots/landing-mascots.png'</code></td>
+                <td><code>import tarotImage from '@/assets/images/figma/landing-tarot.png'</code></td>
               </tr>
               <tr>
                 <td><code>public/</code></td>
@@ -1153,8 +1153,8 @@
           <p>
             Vite에서 브라우저 코드로 노출되는 환경변수는 <code>VITE_</code>로 시작해야 합니다.
           </p>
-          <pre><code>VITE_API_BASE_URL=http://localhost:3000
-VITE_KAKAO_REST_API_KEY=카카오 REST API 키
+          <pre><code>VITE_API_BASE_URL=https://renaissance-production-f569.up.railway.app
+VITE_KAKAO_REST_API_KEY=선택 사항인 카카오 REST API 대체 키
 VITE_KAKAO_REDIRECT_URI=http://localhost:5173/auth/kakao/callback</code></pre>
 
           <div class="warning callout">

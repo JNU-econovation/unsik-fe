@@ -672,10 +672,10 @@
                   <td>카카오 OAuth code와 같은 로그인 요청에 사용한 redirectUri를 백엔드 세션 토큰과 회원 정보로 교환합니다.</td>
                 </tr>
                 <tr>
-                  <td>로컬 로그아웃</td>
-                  <td><code>clearAuthSession</code></td>
+                  <td>서버·로컬 로그아웃</td>
+                  <td><code>logout</code>, <code>clearAuthSession</code></td>
                   <td>방 목록</td>
-                  <td>현재 기기의 <code>unsik:auth_session</code>만 삭제하고 메인 화면으로 돌아갑니다.</td>
+                  <td><code>POST /api/auth/logout</code>을 호출한 뒤 현재 기기의 <code>unsik:auth_session</code>을 삭제하고 메인 화면으로 돌아갑니다. 네트워크 실패 시에도 로컬 세션은 정리합니다.</td>
                 </tr>
                 <tr>
                   <td><code>GET /api/groups</code></td>
@@ -818,8 +818,8 @@
             <div class="panel">
               <h3>중복 호출 완화</h3>
               <p>
-                호불호 투표는 후보 카드 클릭 때 바로 제출하지 않고, 최종 확정 단계에서 제출합니다. 다시 뽑기나 중복 마감으로
-                생기던 충돌 가능성을 줄였습니다.
+                호불호 투표는 후보 카드 클릭 때 바로 제출하지 않고, 모든 카드를 고른 뒤 열리는 공개 화면의 최종 확정 단계에서
+                제출합니다. 다시 뽑기나 중복 마감으로 생기던 충돌 가능성을 줄였습니다.
               </p>
             </div>
             <div class="panel">

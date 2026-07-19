@@ -48,8 +48,8 @@
 
 ```tsx
 const COPY = {
-  title: '오늘 뭐 먹지?\n운명에게 물어봐.',
-  cta: '메뉴 점 보러 가기',
+  title: '오늘 뭐 먹을지 또 고민하고 계신가요?',
+  cta: '카카오로 시작하기',
 } as const;
 ```
 
@@ -194,7 +194,7 @@ async function fetchRecommendation(): Promise<MenuRecommendation> {
 
 ```ts
 import { MainScreen } from '@/components/main/main-screen';
-import mascotImage from '@/assets/images/mascots/landing-mascots.png';
+import tarotImage from '@/assets/images/figma/landing-tarot.png';
 ```
 
 왜 중요한가:
