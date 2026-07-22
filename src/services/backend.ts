@@ -360,6 +360,7 @@ export async function submitPreference(
   voteId: number,
   payload: {
     dislikedCuisines: Cuisine[];
+    excludedMenuIds: number[];
     restrictions: Restriction[];
   },
 ) {
@@ -368,6 +369,7 @@ export async function submitPreference(
     body: {
       memberId: context.memberId,
       dislikedCuisines: payload.dislikedCuisines,
+      excludedMenuIds: payload.excludedMenuIds,
       restrictions: payload.restrictions,
     },
     token: context.token,

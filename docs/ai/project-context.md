@@ -38,9 +38,8 @@ endpoint, so the frontend filters that response by normalized menu or cuisine
 text and caches it for subsequent input. Spacing differences do not block
 matches. It provides an
 in-place retry when the catalog request fails or exceeds a ten-second timeout,
-and explains that selecting a
-specific menu excludes its cuisine because the preference API accepts cuisines,
-not menu IDs.
+and submits selected menu IDs through `excludedMenuIds`, independently from
+category-wide exclusions in `dislikedCuisines`.
 
 Backend integration is partial because the current Swagger contract does not
 cover every screen state. Kakao auth, groups, group members, vote creation,
@@ -218,8 +217,8 @@ The app has installable PWA basics:
   so an OWNER-only vote sends the selected OWNER id to satisfy validation; the
   backend still treats that member as the single auto-included OWNER. Vote
   deadlines are sent as local `yyyy-MM-ddTHH:mm:ss` strings.
-- `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines and
-  allergy/restriction submission
+- `POST /api/votes/{voteId}/preferences?memberId=...`: disliked cuisines,
+  individually excluded menu IDs, and allergy/restriction submission
 - `POST /api/votes/{voteId}/recommend?memberId=...`: candidate menus
 - `POST /api/votes/{voteId}/ballots?memberId=...`: like/dislike ballots;
   the backend automatically aggregates only after every participant submits
@@ -254,10 +253,9 @@ Known contract gaps:
   screen is rendered from `GET /api/groups/{groupId}/votes` entries that have a
   `resultMenu`; restaurant names and favorite state are not available from the
   backend contract.
-- `POST /api/votes/{voteId}/preferences` accepts disliked cuisines, not
-  disliked menu IDs. When a user searches and excludes a specific menu from
-  `GET /api/menus`, the frontend maps that menu to its cuisine and submits the
-  cuisine in `dislikedCuisines`.
+- `POST /api/votes/{voteId}/preferences` accepts individual menu exclusions in
+  `excludedMenuIds`. Search-selected menus use this field, while category cards
+  continue to submit cuisine-wide exclusions in `dislikedCuisines`.
 - Swagger recommendation candidates are rendered as returned. The frontend no
   longer fills missing visual slots with local candidate data.
 - No ballot progress/count endpoint exists. After a member submits

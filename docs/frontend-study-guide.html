@@ -1144,7 +1144,7 @@
           <h3>아직 백엔드 계약이 필요한 부분</h3>
           <ul>
             <li>위치 투표 전용 API가 없어 화면 위치 선택은 투표 생성의 <code>school</code> 값으로만 전달합니다.</li>
-            <li>메뉴 단위 제외 API가 없어 검색으로 제외한 메뉴는 해당 메뉴의 <code>cuisine</code>으로 변환해 제출합니다.</li>
+            <li>검색으로 고른 메뉴는 <code>excludedMenuIds</code>로 제출해 해당 메뉴만 제외하고, 카테고리 카드는 <code>dislikedCuisines</code>로 음식 종류 전체를 제외합니다.</li>
             <li>식당 평점, 리뷰, 가격대, 영업 상태는 카카오 로컬 응답에 없어 표시하지 않습니다.</li>
             <li>실제 푸시 알림은 아직 없습니다. 현재는 브라우저 Notification API로 즉시 로컬 알림만 시도합니다.</li>
           </ul>

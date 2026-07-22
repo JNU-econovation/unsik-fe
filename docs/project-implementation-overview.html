@@ -619,7 +619,7 @@
               <h3>오늘의 취향</h3>
               <p>
                 <code>GET /api/menus</code>로 전체 메뉴 목록을 가져와 검색 UI에 보여줍니다. 사용자가 특정 메뉴를 제외하면
-                현재 API 제약상 그 메뉴의 <code>cuisine</code>을 <code>dislikedCuisines</code>로 변환해 제출합니다.
+                해당 메뉴 ID를 <code>excludedMenuIds</code>로 제출하고, 카테고리 제외는 별도로 <code>dislikedCuisines</code>에 제출합니다.
               </p>
             </div>
             <div class="panel">
@@ -1001,11 +1001,6 @@
                   <td>투표 단계별 제출 상태</td>
                   <td>누가 선호를 냈는지, 누가 호불호 투표를 했는지 정확히 보여줘야 합니다.</td>
                   <td>현재는 선택된 참여자 수와 진행 중 상태만 보여주고, 단계별 미제출자는 표시하지 않습니다.</td>
-                </tr>
-                <tr>
-                  <td><code>dislikedMenuIds</code></td>
-                  <td>김치찌개만 제외하고 한식 전체는 허용하는 식의 메뉴 단위 제외가 필요합니다.</td>
-                  <td>현재는 선택 메뉴의 <code>cuisine</code>을 <code>dislikedCuisines</code>로 바꿔 제출합니다.</td>
                 </tr>
                 <tr>
                   <td>식당 검색 fallback</td>

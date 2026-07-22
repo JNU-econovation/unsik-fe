@@ -378,20 +378,6 @@ export function VoteFlowScreen({
     pendingPreferenceMemberIds,
     selectedMembers,
   ]);
-  const excludedMenus = useMemo(
-    () => menuCatalog.filter((menu) => excludedMenuIds.has(menu.id)),
-    [excludedMenuIds, menuCatalog],
-  );
-  const effectiveDislikedCuisines = useMemo(() => {
-    const next = new Set(dislikedCuisines);
-
-    excludedMenus.forEach((menu) => {
-      next.add(menu.cuisine);
-    });
-
-    return next;
-  }, [dislikedCuisines, excludedMenus]);
-
   useEffect(() => {
     return () => {
       if (toastTimerRef.current !== null) {
@@ -1222,7 +1208,8 @@ export function VoteFlowScreen({
         { memberId: context.memberId, token: context.token },
         activeVote.id,
         {
-          dislikedCuisines: Array.from(effectiveDislikedCuisines),
+          dislikedCuisines: Array.from(dislikedCuisines),
+          excludedMenuIds: Array.from(excludedMenuIds),
           restrictions: Array.from(restrictions),
         },
       );
@@ -1370,33 +1357,7 @@ export function VoteFlowScreen({
   };
 
   const handleToggleCuisine = (cuisine: Cuisine) => {
-    const isSelected = effectiveDislikedCuisines.has(cuisine);
-
-    setDislikedCuisines((current) => {
-      const next = new Set(current);
-
-      if (isSelected) {
-        next.delete(cuisine);
-      } else {
-        next.add(cuisine);
-      }
-
-      return next;
-    });
-
-    if (isSelected) {
-      setExcludedMenuIds((current) => {
-        const next = new Set(current);
-
-        menuCatalog.forEach((menu) => {
-          if (menu.cuisine === cuisine) {
-            next.delete(menu.id);
-          }
-        });
-
-        return next;
-      });
-    }
+    setDislikedCuisines((current) => toggleSetValue(current, cuisine));
   };
 
   const handleToggleExcludedMenu = (menuId: number) => {
@@ -1525,7 +1486,7 @@ export function VoteFlowScreen({
       return (
         <PreferenceView
           apiMessage={apiMessage}
-          dislikedCuisines={effectiveDislikedCuisines}
+          dislikedCuisines={dislikedCuisines}
           excludedMenuIds={excludedMenuIds}
           isLoading={isLoading}
           menuCatalog={menuCatalog}
@@ -2233,12 +2194,12 @@ function PreferenceView({
             {selectedMenus.map((menu) => (
               <button type="button" key={menu.id} onClick={() => onToggleExcludedMenu(menu.id)}>
                 <span>{menu.name}</span>
-                <small>{getCuisineLabel(menu.cuisine)} 제외</small>
+                <small>이 메뉴만 제외</small>
                 <b aria-hidden="true">×</b>
               </button>
             ))}
           </div>
-          <p className="vote-menu-search-help">선택한 메뉴와 같은 음식 종류가 추천에서 제외됩니다.</p>
+          <p className="vote-menu-search-help">선택한 메뉴만 추천에서 제외됩니다.</p>
         </>
       ) : null}
 
