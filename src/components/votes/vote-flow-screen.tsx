@@ -150,7 +150,7 @@ const ORACLES = [
     id: 'star',
     name: '별의 점쟁이',
     imageSrc: oracleStarImage,
-    copy: '깔끔한 선택. 오늘 외모 운이 살짝 올라가요.',
+    copy: '연애운 상승. 맛있는 한 끼가 새로운 인연을 불러올 거예요.',
   },
   {
     id: 'moon',
@@ -162,7 +162,7 @@ const ORACLES = [
     id: 'fate',
     name: '운명의 점쟁이',
     imageSrc: oracleFateImage,
-    copy: '57%가 고른 빠른 운명 확정 카드.',
+    copy: '재물운 상승. 현명한 선택이 뜻밖의 행운을 불러올 거예요.',
   },
 ];
 
