@@ -34,9 +34,6 @@ import {
 import oracleFateImage from '@/assets/images/figma/oracle-2.png';
 import oracleMoonImage from '@/assets/images/figma/oracle-3.png';
 import oracleStarImage from '@/assets/images/figma/oracle-1.png';
-import galbitangCardImage from '@/assets/images/figma/card-pick-scene.png';
-import gukbapCardImage from '@/assets/images/figma/card-pick-card.png';
-import galbitangRevealImage from '@/assets/images/figma/card-reveal.png';
 import preferenceAsianImage from '@/assets/images/figma/preference-asian.png';
 import preferenceChineseImage from '@/assets/images/figma/preference-chinese.png';
 import preferenceFastfoodImage from '@/assets/images/figma/preference-fastfood.png';
@@ -85,6 +82,11 @@ type CandidateCard = CandidateMenuResponse & {
 };
 
 type BallotChoice = 'LIKE' | 'DISLIKE';
+
+type FoodTarotCardArtwork = {
+  src: string;
+  isSquareSource: boolean;
+};
 
 type ActiveVote = {
   id?: number;
@@ -183,6 +185,78 @@ const CUISINE_OPTIONS: Array<{
   { cuisine: 'CHINESE', label: '중식', icon: '🥟', imageSrc: preferenceChineseImage, description: '짜장 · 짬뽕 · 마라탕', color: '#d783ff' },
   { cuisine: 'WESTERN', label: '양식', icon: '🍝', imageSrc: preferenceWesternImage, description: '파스타 · 스테이크 · 포케', color: '#4dd0e1' },
 ];
+
+const FOOD_TAROT_IMAGE_MODULES = import.meta.glob<string>(
+  '../../../assets/images/food_images/*.png',
+  { eager: true, import: 'default' },
+);
+
+const FOOD_TAROT_CARD_DEFINITIONS: ReadonlyArray<{
+  keywords: readonly string[];
+  fileName: string;
+}> = [
+  { keywords: ['갈비탕'], fileName: '갈비탕.png' },
+  { keywords: ['감자탕'], fileName: '감자탕.png' },
+  { keywords: ['곰탕'], fileName: '곰탕.png' },
+  { keywords: ['곱도리탕'], fileName: '곱도리탕.png' },
+  { keywords: ['국밥'], fileName: '국밥.png' },
+  { keywords: ['김밥'], fileName: '김밥.png' },
+  { keywords: ['김치찜'], fileName: '김치찜.png' },
+  { keywords: ['낙곱새'], fileName: '낙곱새.png' },
+  { keywords: ['냉면'], fileName: '냉면.png' },
+  { keywords: ['닭발'], fileName: '닭발.png' },
+  { keywords: ['떡볶이'], fileName: '떡볶이.png' },
+  { keywords: ['라멘', '라면'], fileName: '라멘.png' },
+  { keywords: ['리조또', '리소토'], fileName: '리조또.png' },
+  { keywords: ['덮밥'], fileName: '덮밥.png' },
+  { keywords: ['돈까스', '돈가스'], fileName: '돈까스.png' },
+  { keywords: ['마라탕'], fileName: '마라탕.png' },
+  { keywords: ['막창'], fileName: '막창.png' },
+  { keywords: ['만두'], fileName: '만두.png' },
+  { keywords: ['메밀소바', '메밀국수', '소바'], fileName: '메밀소바.png' },
+  { keywords: ['밥버거', '버거'], fileName: '밥버거.png' },
+  { keywords: ['보쌈'], fileName: '보쌈.png' },
+  { keywords: ['부대찌개'], fileName: '부대찌개.png' },
+  { keywords: ['볶음밥'], fileName: '볶음밥.png' },
+  { keywords: ['브리또', '부리토'], fileName: '브리또.png' },
+  { keywords: ['비빔밥'], fileName: '비빔밥.png' },
+  { keywords: ['삼계탕'], fileName: '삼계탕.png' },
+  { keywords: ['삼겹살'], fileName: '삼겹살.png' },
+  { keywords: ['샌드위치'], fileName: '샌드위치.png' },
+  { keywords: ['설렁탕'], fileName: '설렁탕.png' },
+  { keywords: ['샤브샤브'], fileName: '샤브샤브.png' },
+  { keywords: ['소곱창', '곱창'], fileName: '소곱창.png' },
+  { keywords: ['스테이크'], fileName: '스테이크.png' },
+  { keywords: ['스파게티'], fileName: '스파게티.png' },
+  { keywords: ['스시', '초밥'], fileName: '스시.png' },
+  { keywords: ['쌀국수'], fileName: '쌀국수.png' },
+  { keywords: ['아구찜', '아귀찜'], fileName: '아구찜.png' },
+  { keywords: ['양꼬치'], fileName: '양꼬치.png' },
+  { keywords: ['어묵탕', '오뎅탕'], fileName: '어묵탕.png' },
+  { keywords: ['연어회', '연어'], fileName: '연어회.png' },
+  { keywords: ['월남쌈'], fileName: '월남쌈.png' },
+  { keywords: ['육회'], fileName: '육회.png' },
+  { keywords: ['제육볶음', '제육'], fileName: '제육볶음.png' },
+  { keywords: ['짜장면', '자장면'], fileName: '짜장면.png' },
+  { keywords: ['짬뽕'], fileName: '짬뽕.png' },
+  { keywords: ['파스타'], fileName: '파스타.png' },
+  { keywords: ['팟타이'], fileName: '팟타이.png' },
+  { keywords: ['햄버거'], fileName: '햄버거.png' },
+  { keywords: ['피자'], fileName: '피자.png' },
+];
+
+const SQUARE_FOOD_TAROT_CARD_NUMBERS = new Set([
+  6, 7, 8, 9, 10,
+  23, 24, 25, 26,
+  ...Array.from({ length: 19 }, (_, index) => index + 30),
+]);
+
+const FOOD_TAROT_KEYWORD_MATCHERS = FOOD_TAROT_CARD_DEFINITIONS.flatMap((definition) =>
+  definition.keywords.map((keyword) => ({
+    definition,
+    normalizedKeyword: normalizeMenuSearchText(keyword),
+  })),
+).sort((left, right) => right.normalizedKeyword.length - left.normalizedKeyword.length);
 
 const MENU_ICON_RULES: ReadonlyArray<{ keywords: readonly string[]; icon: string }> = [
   { keywords: ['치킨', '닭강정', '닭튀김', '후라이드', 'chicken'], icon: '🍗' },
@@ -2317,6 +2391,8 @@ function CardVoteView({
   onBack: () => void;
   onVote: (choice: BallotChoice) => void;
 }) {
+  const candidateArtwork = getFoodTarotCardArtwork(candidate);
+
   return (
     <>
       <VoteNav title="카드 뽑기" onBack={onBack} right={`${activeCardIndex + 1} / ${candidates.length}`} />
@@ -2327,12 +2403,22 @@ function CardVoteView({
       </div>
 
       <section className="vote-pick-layout">
-        <article className="vote-menu-card">
-          <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
-          <div className="vote-menu-icon">{candidate.icon}</div>
-          <strong>{candidate.name}</strong>
-          <p>{candidate.description}</p>
-          <em># {getCuisineLabel(candidate.cuisine)}</em>
+        <article className={`vote-menu-card${candidateArtwork ? ' vote-menu-card-artwork' : ''}`}>
+          {candidateArtwork ? (
+            <img
+              className={getFoodTarotImageClassName(candidateArtwork)}
+              src={candidateArtwork.src}
+              alt={`${candidate.name} 타로 카드`}
+            />
+          ) : (
+            <>
+              <span className="vote-roman">{toRoman(activeCardIndex + 1)}</span>
+              <div className="vote-menu-icon">{candidate.icon}</div>
+              <strong>{candidate.name}</strong>
+              <p>{candidate.description}</p>
+              <em># {getCuisineLabel(candidate.cuisine)}</em>
+            </>
+          )}
         </article>
         <div className="vote-card-stack-preview">
           <span>✦</span>
@@ -2377,8 +2463,7 @@ function RevealView({
   onFinalize: () => void;
   onRetry: () => void;
 }) {
-  const finalMenuArtwork = getMenuArtwork(finalMenu.name);
-  const hasFigmaRevealArtwork = normalizeMenuSearchText(finalMenu.name).includes('갈비탕');
+  const finalMenuArtwork = getFoodTarotCardArtwork(finalMenu);
 
   return (
     <>
@@ -2389,25 +2474,21 @@ function RevealView({
       </header>
 
       <button
-        className={hasFigmaRevealArtwork ? 'vote-reveal-card vote-reveal-card-exact' : 'vote-reveal-card'}
+        className={finalMenuArtwork ? 'vote-reveal-card vote-reveal-card-exact' : 'vote-reveal-card'}
         type="button"
         onClick={onFinalize}
         aria-label={`${finalMenu.name}(으)로 결정하기`}
       >
-        {hasFigmaRevealArtwork ? (
-          <span className="vote-reveal-tarot-crop">
-            <img src={galbitangRevealImage} alt="갈비탕 타로 카드" />
-          </span>
+        {finalMenuArtwork ? (
+          <img
+            className={getFoodTarotImageClassName(finalMenuArtwork)}
+            src={finalMenuArtwork.src}
+            alt={`${finalMenu.name} 타로 카드`}
+          />
         ) : (
           <>
             <span>✦ 오늘의 메뉴 ✦</span>
-            {finalMenuArtwork ? (
-              <span className="vote-reveal-artwork">
-                <img src={finalMenuArtwork.src} alt="" style={{ objectPosition: finalMenuArtwork.position }} />
-              </span>
-            ) : (
-              <em>{finalMenu.icon}</em>
-            )}
+            <em>{finalMenu.icon}</em>
             <strong>{finalMenu.name}</strong>
             <p>{finalMenu.description}</p>
             <small># {getCuisineLabel(finalMenu.cuisine)}</small>
@@ -2465,6 +2546,7 @@ function FinalResultView({
   onOpenRestaurant: (restaurant: RestaurantDocument) => void;
 }) {
   const fateCharacterImage = getCuisineCharacterImage(finalMenu.cuisine);
+  const finalMenuArtwork = getFoodTarotCardArtwork(finalMenu);
 
   return (
     <>
@@ -2480,11 +2562,21 @@ function FinalResultView({
           <span className="vote-final-spark vote-final-spark-two" aria-hidden="true">✧</span>
           <span className="vote-final-spark vote-final-spark-three" aria-hidden="true">✦</span>
           <div className="vote-final-magic-trail" aria-hidden="true" />
-          <div className="vote-final-tarot-card">
-            <small>UNSIK · TODAY'S FATE</small>
-            <div className="vote-final-menu-icon" aria-hidden="true">{finalMenu.icon}</div>
-            <strong>{finalMenu.name}</strong>
-            <span>{getCuisineLabel(finalMenu.cuisine)}</span>
+          <div className={`vote-final-tarot-card${finalMenuArtwork ? ' vote-final-tarot-card-artwork' : ''}`}>
+            {finalMenuArtwork ? (
+              <img
+                className={getFoodTarotImageClassName(finalMenuArtwork)}
+                src={finalMenuArtwork.src}
+                alt={`${finalMenu.name} 타로 카드`}
+              />
+            ) : (
+              <>
+                <small>UNSIK · TODAY'S FATE</small>
+                <div className="vote-final-menu-icon" aria-hidden="true">{finalMenu.icon}</div>
+                <strong>{finalMenu.name}</strong>
+                <span>{getCuisineLabel(finalMenu.cuisine)}</span>
+              </>
+            )}
           </div>
           <img
             className="vote-final-character"
@@ -2905,18 +2997,61 @@ function getMenuIcon(name: string, cuisine: Cuisine) {
   return matchedRule?.icon ?? getCuisineIcon(cuisine);
 }
 
-function getMenuArtwork(name: string): { src: string; position: string } | null {
-  const normalizedName = normalizeMenuSearchText(name);
+function getFoodTarotCardArtwork(
+  menu: Pick<CandidateMenuResponse, 'menuId' | 'name'>,
+): FoodTarotCardArtwork | null {
+  const normalizedName = normalizeMenuSearchText(menu.name);
+  const match = FOOD_TAROT_KEYWORD_MATCHERS.find(({ normalizedKeyword }) =>
+    normalizedName.includes(normalizedKeyword),
+  );
 
-  if (normalizedName.includes('갈비탕')) {
-    return { src: galbitangCardImage, position: '50% 57%' };
+  const definition =
+    match?.definition ??
+    (Number.isInteger(menu.menuId) && menu.menuId > 0
+      ? FOOD_TAROT_CARD_DEFINITIONS[menu.menuId - 1]
+      : undefined);
+
+  if (!definition) {
+    return null;
   }
 
-  if (normalizedName.includes('국밥')) {
-    return { src: gukbapCardImage, position: '50% 58%' };
+  const cardNumber = FOOD_TAROT_CARD_DEFINITIONS.indexOf(definition) + 1;
+  const src = findFoodTarotImageSource(definition);
+
+  return src
+    ? {
+        src,
+        isSquareSource: SQUARE_FOOD_TAROT_CARD_NUMBERS.has(cardNumber),
+      }
+    : null;
+}
+
+function findFoodTarotImageSource(definition: {
+  keywords: readonly string[];
+  fileName: string;
+}): string | undefined {
+  const directPath = `../../../assets/images/food_images/${definition.fileName}`;
+  const directSource = FOOD_TAROT_IMAGE_MODULES[directPath];
+
+  if (directSource) {
+    return directSource;
   }
 
-  return null;
+  const normalizedKeywords = definition.keywords.map(normalizeMenuSearchText);
+  const renamedEntry = Object.entries(FOOD_TAROT_IMAGE_MODULES).find(([path]) => {
+    const fileBaseName = path.split('/').at(-1)?.replace(/\.png$/i, '') ?? '';
+    const normalizedFileName = normalizeMenuSearchText(fileBaseName);
+
+    return normalizedKeywords.some(
+      (keyword) => normalizedFileName.includes(keyword) || keyword.includes(normalizedFileName),
+    );
+  });
+
+  return renamedEntry?.[1];
+}
+
+function getFoodTarotImageClassName(artwork: FoodTarotCardArtwork) {
+  return `vote-food-tarot-image${artwork.isSquareSource ? ' vote-food-tarot-image-square' : ''}`;
 }
 
 function getCuisineLabel(cuisine: Cuisine) {

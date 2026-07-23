@@ -182,6 +182,16 @@ category description remain visible. The final-result scene reuses the matching
 cuisine mascot beside a dynamic tarot card containing the actual selected menu,
 following the composition of Figma node `45:78` without hard-coding one menu.
 
+## Food Tarot Card Assets
+
+The 48 completed menu tarot cards under `assets/images/food_images/` are mapped
+to normalized backend menu names in `vote-flow-screen.tsx`, with the card's
+I–XLVIII order used as a `menuId` fallback when backend naming differs.
+Matching artwork is reused in the card-vote, reveal, and final-result screens.
+Some source PNGs use a square canvas around a portrait card, so the shared tarot
+image CSS crops those files horizontally. Menus without matching artwork
+continue to use the existing generated card fallback.
+
 ## PWA
 
 The app has installable PWA basics:
